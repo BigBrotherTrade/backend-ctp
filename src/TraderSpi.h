@@ -15,6 +15,14 @@ public:
     virtual void OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pStruct,
                                             CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
 
+    ///请求查询结算信息确认响应
+    virtual void OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pSettlementInfoConfirm,
+                                               CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
+
+    ///请求查询投资者结算结果响应
+    virtual void OnRspQrySettlementInfo(CThostFtdcSettlementInfoField *pSettlementInfo,
+                                        CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
+
     ///请求查询合约响应
     virtual void OnRspQryInstrument(CThostFtdcInstrumentField *pStruct, CThostFtdcRspInfoField *pRspInfo,
                                     int nRequestID, bool bIsLast);
@@ -49,6 +57,10 @@ public:
 
     ///请求查询报单响应
     virtual void OnRspQryOrder(CThostFtdcOrderField *pOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID,
+                               bool bIsLast);
+
+    ///请求查询成交响应
+    virtual void OnRspQryTrade(CThostFtdcTradeField *pTrade, CThostFtdcRspInfoField *pRspInfo, int nRequestID,
                                bool bIsLast);
 
     ///错误应答

@@ -3,19 +3,18 @@
 
 using namespace std;
 
-Json::FastWriter writer;
-
 void CMdSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo,
                         int nRequestID, bool bIsLast) {
     Json::Value root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = pRspInfo->ErrorID;
-    publisher.publish(CHANNEL_MARKET_DATA+"OnRspError", writer.write(root));
+    publisher.publish(CHANNEL_MARKET_DATA+"OnRspError:" + ntos(nRequestID), writer.write(root));
 }
 
 void CMdSpi::OnFrontDisconnected(int nReason) {
     publisher.publish(CHANNEL_MARKET_DATA + "OnFrontDisconnected", ntos(nReason));
+    market_login = false;
 }
 
 void CMdSpi::OnHeartBeatWarning(int nTimeLapse) {
@@ -49,6 +48,7 @@ void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
         root["CZCETime"] = pRspUserLogin->CZCETime;
         root["FFEXTime"] = pRspUserLogin->FFEXTime;
         root["INETime"] = pRspUserLogin->INETime;
+        market_login = true;
     }
     publisher.publish(CHANNEL_MARKET_DATA + "OnRspUserLogin", writer.write(root));
 }
