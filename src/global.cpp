@@ -354,5 +354,10 @@ void handle_command() {
         }
         int iResult = (func->second)(cmd.arg);
         cout << "call " << cmd.cmd << "() rst=" << iResult << endl;
+        if (iResult != 0) {
+            Json::Value err = "failed";
+            publisher.publish(CHANNEL_MARKET_DATA + "OnRspError:" + cmd.arg["RequestID"].asString(),
+                              writer.write(err));
+        }
     }
 }

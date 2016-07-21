@@ -663,7 +663,7 @@ void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pStruct) {
     root["CurrencyID"] = pStruct->CurrencyID;
     root["IPAddress"] = pStruct->IPAddress;
     root["MacAddress"] = pStruct->MacAddress;
-    publisher.publish(CHANNEL_TRADE_DATA + "OnRtnOrder", writer.write(root));
+    publisher.publish(CHANNEL_TRADE_DATA + "OnRtnOrder:" + root["OrderRef"].asString(), writer.write(root));
 }
 
 ///成交通知
@@ -699,7 +699,8 @@ void CTraderSpi::OnRtnTrade(CThostFtdcTradeField *pStruct) {
     root["SettlementID"] = pStruct->SettlementID;
     root["BrokerOrderSeq"] = pStruct->BrokerOrderSeq;
     root["TradeSource"] = pStruct->TradeSource;
-    publisher.publish(CHANNEL_TRADE_DATA + "OnRtnTrade", writer.write(root));
+    publisher.publish(CHANNEL_TRADE_DATA + "OnRtnTrade:" + root["OrderRef"].asString(),
+                      writer.write(root));
 }
 
 void CTraderSpi::OnFrontDisconnected(int nReason) {

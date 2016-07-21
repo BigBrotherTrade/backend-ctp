@@ -65,7 +65,7 @@ void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
         root["INETime"] = pRspUserLogin->INETime;
         market_login = true;
     }
-    publisher.publish(CHANNEL_MARKET_DATA + "OnRspUserLogin", writer.write(root));
+    publisher.publish(CHANNEL_MARKET_DATA + "OnRspUserLogin:" + ntos(nRequestID), writer.write(root));
 }
 
 void CMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument,
