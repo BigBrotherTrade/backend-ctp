@@ -702,4 +702,6 @@ void CTraderSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bo
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = pRspInfo->ErrorID;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspError:" + ntos(nRequestID), writer.write(root));
+    query_finished = true;
+    check_cmd.notify_all();
 }

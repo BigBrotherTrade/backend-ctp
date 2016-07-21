@@ -9,8 +9,11 @@ using namespace std;
 using namespace redox;
 
 int main(int argc, char* argv[]) {
+    char config_path[512] = {0};
+    readlink("/proc/self/exe", config_path, 512);
+    string path(config_path);
     boost::property_tree::ptree pt;
-    boost::property_tree::ini_parser::read_ini("config.ini", pt);
+    boost::property_tree::ini_parser::read_ini(path.substr(0, path.find_last_of("/")) + "/config.ini", pt);
     if(!publisher.connect(pt.get<std::string>("redis.host"), pt.get<int>("redis.port"))) return 1;
     if(!subscriber.connect(pt.get<std::string>("redis.host"), pt.get<int>("redis.port"))) return 1;
 

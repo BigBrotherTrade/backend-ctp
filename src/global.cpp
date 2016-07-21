@@ -316,13 +316,14 @@ void handle_command() {
     auto start = std::chrono::high_resolution_clock::now();
     while (keep_running) {
         std::unique_lock<std::mutex> lk(mut);
-        check_cmd.wait_for(lk, std::chrono::seconds(5), [start] {
+        bool wait_rst = check_cmd.wait_for(lk, std::chrono::seconds(5), [start] {
             if (cmd_queue.empty())
                 return false;
             if (query_finished)
                 return true;
             return std::chrono::high_resolution_clock::now() - start > std::chrono::seconds(30);
         });
+        if (!wait_rst) continue;
         RequestCommand cmd = cmd_queue.front();
         cmd_queue.pop();
         auto func = req_func.find(cmd.cmd);
