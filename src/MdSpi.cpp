@@ -24,7 +24,7 @@ void CMdSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo,
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = pRspInfo->ErrorID;
-    publisher.publish(CHANNEL_MARKET_DATA+"OnRspError:" + ntos(nRequestID), writer.write(root));
+    publisher.publish(CHANNEL_MARKET_DATA + "OnRspError:" + ntos(nRequestID), writer.write(root));
 }
 
 void CMdSpi::OnFrontDisconnected(int nReason) {
@@ -79,7 +79,7 @@ void CMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInst
     } else {
         root["InstrumentID"] = "InstrumentID", pSpecificInstrument->InstrumentID;
     }
-    publisher.publish(CHANNEL_MARKET_DATA + "OnRspSubMarketData", writer.write(root));
+    publisher.publish(CHANNEL_MARKET_DATA + "OnRspSubMarketData:" + ntos(nRequestID), writer.write(root));
 }
 
 void CMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument,
@@ -93,7 +93,7 @@ void CMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificIn
     } else {
         root["InstrumentID"] = "InstrumentID", pSpecificInstrument->InstrumentID;
     }
-    publisher.publish(CHANNEL_MARKET_DATA + "OnRspUnSubMarketData", writer.write(root));
+    publisher.publish(CHANNEL_MARKET_DATA + "OnRspUnSubMarketData:" + ntos(nRequestID), writer.write(root));
 }
 
 void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pData) {
@@ -141,5 +141,6 @@ void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pData) {
     root["AskVolume5"] = pData->AskVolume5;
     root["AveragePrice"] = pData->AveragePrice;
     root["ActionDay"] = pData->ActionDay;
-    publisher.publish(CHANNEL_MARKET_DATA + "OnRtnDepthMarketData", writer.write(root));
+    publisher.publish(CHANNEL_MARKET_DATA + "OnRtnDepthMarketData:" + root["InstrumentID"].asString(),
+                      writer.write(root));
 }
