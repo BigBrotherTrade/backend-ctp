@@ -20,7 +20,13 @@
 using namespace std;
 
 void CTraderSpi::OnFrontConnected() {
+    CThostFtdcReqUserLoginField* req = new CThostFtdcReqUserLoginField;
+    strcpy(req->BrokerID, BROKER_ID.c_str());
+    strcpy(req->UserID, INVESTOR_ID.c_str());
+    strcpy(req->Password, PASSWORD.c_str());
+    pTraderApi->ReqUserLogin(req, 1);
     publisher.publish(CHANNEL_TRADE_DATA + "OnFrontConnected", "OnFrontConnected");
+    delete req;
 }
 
 void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
@@ -52,6 +58,11 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
         trade_login = true;
     }
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspUserLogin:" + ntos(nRequestID), writer.write(root));
+    CThostFtdcSettlementInfoConfirmField req;
+    memset(&req, 0, sizeof(req));
+    strcpy(req.BrokerID, BROKER_ID.c_str());
+    strcpy(req.InvestorID, INVESTOR_ID.c_str());
+    pTraderApi->ReqSettlementInfoConfirm(&req, nRequestID+1);
 }
 
 void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pStruct,

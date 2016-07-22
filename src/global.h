@@ -32,9 +32,11 @@ extern redox::Subscriber subscriber;
 extern CThostFtdcTraderApi* pTraderApi;
 extern CThostFtdcMdApi* pMdApi;
 
-extern TThostFtdcBrokerIDType	BROKER_ID;		    // 经纪公司代码
-extern TThostFtdcInvestorIDType INVESTOR_ID;		// 投资者代码
-extern TThostFtdcPasswordType  PASSWORD ;			// 用户密码
+extern std::string MAC_ADDRESS;
+extern std::string IP_ADDRESS;
+extern std::string	BROKER_ID;		    // 经纪公司代码
+extern std::string  INVESTOR_ID;		// 投资者代码
+extern std::string  PASSWORD ;			// 用户密码
 extern TThostFtdcFrontIDType FRONT_ID;             // 前置编号
 extern TThostFtdcSessionIDType SESSION_ID;         // 会话编号
 
@@ -45,9 +47,6 @@ extern std::atomic<bool> keep_running;
 extern std::atomic<bool> trade_login;
 extern std::atomic<bool> market_login;
 extern std::condition_variable check_cmd;
-
-extern char MAC_ADDRESS[64];
-extern char IP_ADDRESS[32];
 
 void handle_req_request(const std::string& topic, const std::string& msg);
 

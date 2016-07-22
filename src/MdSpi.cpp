@@ -37,7 +37,13 @@ void CMdSpi::OnHeartBeatWarning(int nTimeLapse) {
 }
 
 void CMdSpi::OnFrontConnected() {
+    CThostFtdcReqUserLoginField* req = new CThostFtdcReqUserLoginField;
+    strcpy(req->BrokerID, BROKER_ID.c_str());
+    strcpy(req->UserID, INVESTOR_ID.c_str());
+    strcpy(req->Password, PASSWORD.c_str());
+    pTraderApi->ReqUserLogin(req, 1);
     publisher.publish(CHANNEL_MARKET_DATA + "OnFrontConnected", "OnFrontConnected");
+    delete req;
 }
 
 void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
