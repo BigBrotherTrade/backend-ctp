@@ -25,7 +25,6 @@ static const std::string CHANNEL_REQ_PATTERN = "MSG:CTP:REQ:*"; // 监听req命�
 static const std::string CHANNEL_TRADE_DATA = "MSG:CTP:RSP:TRADE:";  // trade回调通知
 static const std::string CHANNEL_MARKET_DATA = "MSG:CTP:RSP:MARKET:";// md回调数据
 
-extern Json::FastWriter writer;
 extern redox::Redox publisher;
 extern redox::Subscriber subscriber;
 

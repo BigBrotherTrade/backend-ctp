@@ -37,7 +37,6 @@ std::atomic<bool> keep_running(true);
 std::atomic<bool> trade_login(false);
 std::atomic<bool> market_login(false);
 std::condition_variable check_cmd;
-Json::FastWriter writer;
 redox::Redox publisher;
 redox::Subscriber subscriber;
 
@@ -52,24 +51,15 @@ std::mutex mut;
 map<string, boost::function<int(const Json::Value &)> > req_func;
 
 int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destlen) {
-
     iconv_t cd;
     if ((cd = iconv_open("utf-8", "gb2312")) == 0)
-
         return -1;
     memset(destbuf, 0, destlen);
-
     char **source = &sourcebuf;
-
     char **dest = &destbuf;
-    if (-1 == iconv(cd, source, &sourcelen, dest, &destlen))
-
-        return -1;
-
+    iconv(cd, source, &sourcelen, dest, &destlen);
     iconv_close(cd);
-
     return 0;
-
 }
 
 const std::string ntos(const int n) {
@@ -103,12 +93,13 @@ int MarketReqUserLogin(const Json::Value &root) {
 
 int SubscribeMarketData(const Json::Value &root) {
     char **charArray = new char *[root.size()];
-    for (int i = 0; i < root.size(); ++i) {
+    for (unsigned int i = 0; i < root.size(); ++i) {
         charArray[i] = new char[32];
         strcpy(charArray[i], root[i].asCString());
     }
+    cout << "root.size=" << root.size() << endl;
     int iResult = pMdApi->SubscribeMarketData(charArray, root.size());
-    for (int i = 0; i < root.size(); ++i)
+    for (unsigned int i = 0; i < root.size(); ++i)
         delete charArray[i];
     delete[](charArray);
     return iResult;
@@ -116,12 +107,12 @@ int SubscribeMarketData(const Json::Value &root) {
 
 int UnSubscribeMarketData(const Json::Value &root) {
     char **charArray = new char *[root.size()];
-    for (int i = 0; i < root.size(); ++i) {
+    for (unsigned int i = 0; i < root.size(); ++i) {
         charArray[i] = new char[32];
         strcpy(charArray[i], root[i].asCString());
     }
     int iResult = pMdApi->UnSubscribeMarketData(charArray, root.size());
-    for (int i = 0; i < root.size(); ++i)
+    for (unsigned int i = 0; i < root.size(); ++i)
         delete charArray[i];
     delete[](charArray);
     return iResult;
@@ -212,7 +203,7 @@ int ReqQrySettlementInfo(const Json::Value &root) {
 int ReqQryInstrument(const Json::Value &root) {
     CThostFtdcQryInstrumentField req;
     memset(&req, 0, sizeof(req));
-    if (!root.isNull()) {
+    if (!root["InstrumentID"].isNull()) {
         strcpy(req.InstrumentID, root["InstrumentID"].asCString());
     }
     iTradeRequestID = root["RequestID"].asInt();
@@ -224,7 +215,7 @@ int ReqQryInstrumentCommissionRate(const Json::Value &root) {
     memset(&req, 0, sizeof(req));
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if (!root.isNull()) {
+    if (!root["InstrumentID"].isNull()) {
         strcpy(req.InstrumentID, root["InstrumentID"].asCString());
     }
     iTradeRequestID = root["RequestID"].asInt();
@@ -236,7 +227,7 @@ int ReqQryInstrumentMarginRate(const Json::Value &root) {
     memset(&req, 0, sizeof(req));
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if (!root.isNull()) {
+    if (!root["InstrumentID"].isNull()) {
         strcpy(req.InstrumentID, root["InstrumentID"].asCString());
     }
     iTradeRequestID = root["RequestID"].asInt();
@@ -257,7 +248,7 @@ int ReqQryInvestorPosition(const Json::Value &root) {
     memset(&req, 0, sizeof(req));
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if (!root.isNull()) {
+    if (!root["InstrumentID"].isNull()) {
         strcpy(req.InstrumentID, root["InstrumentID"].asCString());
     }
     iTradeRequestID = root["RequestID"].asInt();
@@ -269,7 +260,7 @@ int ReqQryInvestorPositionDetail(const Json::Value &root) {
     memset(&req, 0, sizeof(req));
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if (!root.isNull()) {
+    if (!root["InstrumentID"].isNull()) {
         strcpy(req.InstrumentID, root["InstrumentID"].asCString());
     }
     iTradeRequestID = root["RequestID"].asInt();
@@ -349,9 +340,9 @@ void handle_command() {
             cout << "can't find req_func=" << cmd.cmd << endl;
             continue;
         }
-        // 查询类接口调用频率限制为600毫秒一次
+        // 查询类接口调用频率限制为1秒一次
         if (boost::find_first(cmd.cmd, "ReqQry")) {
-            std::this_thread::sleep_until(start + std::chrono::milliseconds(600));
+            std::this_thread::sleep_until(start + std::chrono::milliseconds(1000));
             query_finished = false;
             start = std::chrono::high_resolution_clock::now();
         }
@@ -360,6 +351,11 @@ void handle_command() {
         cout << "rst=" << iResult << endl;
         if (iResult != 0) {
             Json::Value err = "failed";
+            if (iResult == -2)
+                err = "未处理请求超过许可数";
+            else if (iResult == -3)
+                err = "每秒发送请求数超过许可数";
+            Json::FastWriter writer;
             publisher.publish(CHANNEL_MARKET_DATA + "OnRspError:" + cmd.arg["RequestID"].asString(),
                               writer.write(err));
         }

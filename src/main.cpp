@@ -40,9 +40,9 @@ int main(int argc, char *argv[]) {
     if (!publisher.connect(pt.get<std::string>("redis.host"), pt.get<int>("redis.port"))) return 1;
     if (!subscriber.connect(pt.get<std::string>("redis.host"), pt.get<int>("redis.port"))) return 1;
 
-    BROKER_ID = pt.get<std::string>("sim.broker");
-    INVESTOR_ID = pt.get<std::string>("sim.investor");
-    PASSWORD = pt.get<std::string>("sim.passwd");
+    BROKER_ID = pt.get<std::string>("ctp.broker");
+    INVESTOR_ID = pt.get<std::string>("ctp.investor");
+    PASSWORD = pt.get<std::string>("ctp.passwd");
     IP_ADDRESS = pt.get<std::string>("host.ip");
     MAC_ADDRESS = pt.get<std::string>("host.mac");
 
@@ -51,12 +51,12 @@ int main(int argc, char *argv[]) {
     pTraderApi->RegisterSpi(pTraderSpi);                        // 注册事件类
     pTraderApi->SubscribePublicTopic(THOST_TERT_QUICK);        // 注册公有流
     pTraderApi->SubscribePrivateTopic(THOST_TERT_QUICK);        // 注册私有流
-    pTraderApi->RegisterFront((char *) pt.get<std::string>("sim.trade").c_str());    // connect
+    pTraderApi->RegisterFront((char *) pt.get<std::string>("ctp.trade").c_str());    // connect
 
     pMdApi = CThostFtdcMdApi::CreateFtdcMdApi((path+"md/").c_str());                // 创建MdApi
     CThostFtdcMdSpi *pMdSpi = new CMdSpi();
     pMdApi->RegisterSpi(pMdSpi);                                // 注册事件类
-    pMdApi->RegisterFront((char *) pt.get<std::string>("sim.market").c_str());    // connect
+    pMdApi->RegisterFront((char *) pt.get<std::string>("ctp.market").c_str());    // connect
 
     std::thread command_handler(handle_command);
     subscriber.psubscribe(CHANNEL_REQ_PATTERN, handle_req_request);

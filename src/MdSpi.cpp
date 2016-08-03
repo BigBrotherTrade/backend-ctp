@@ -24,6 +24,7 @@ void CMdSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo,
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = pRspInfo->ErrorID;
+    Json::FastWriter writer;
     publisher.publish(CHANNEL_MARKET_DATA + "OnRspError:" + ntos(nRequestID), writer.write(root));
 }
 
@@ -41,7 +42,7 @@ void CMdSpi::OnFrontConnected() {
     strcpy(req->BrokerID, BROKER_ID.c_str());
     strcpy(req->UserID, INVESTOR_ID.c_str());
     strcpy(req->Password, PASSWORD.c_str());
-    pTraderApi->ReqUserLogin(req.get(), 1);
+    pMdApi->ReqUserLogin(req.get(), 1);
     publisher.publish(CHANNEL_MARKET_DATA + "OnFrontConnected", "OnFrontConnected");
 }
 
@@ -70,6 +71,7 @@ void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
         root["INETime"] = pRspUserLogin->INETime;
         market_login = true;
     }
+    Json::FastWriter writer;
     publisher.publish(CHANNEL_MARKET_DATA + "OnRspUserLogin:" + ntos(nRequestID), writer.write(root));
 }
 
@@ -82,8 +84,9 @@ void CMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInst
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else {
-        root["InstrumentID"] = "InstrumentID", pSpecificInstrument->InstrumentID;
+        root["InstrumentID"] = pSpecificInstrument->InstrumentID;
     }
+    Json::FastWriter writer;
     publisher.publish(CHANNEL_MARKET_DATA + "OnRspSubMarketData:" + ntos(nRequestID), writer.write(root));
 }
 
@@ -96,8 +99,9 @@ void CMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificIn
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else {
-        root["InstrumentID"] = "InstrumentID", pSpecificInstrument->InstrumentID;
+        root["InstrumentID"] = pSpecificInstrument->InstrumentID;
     }
+    Json::FastWriter writer;
     publisher.publish(CHANNEL_MARKET_DATA + "OnRspUnSubMarketData:" + ntos(nRequestID), writer.write(root));
 }
 
@@ -105,8 +109,8 @@ void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pData) {
     Json::Value root;
     root["TradingDay"] = pData->TradingDay;
     root["InstrumentID"] = pData->InstrumentID;
-    root["ExchangeID"] = pData->ExchangeID;
-    root["ExchangeInstID"] = pData->ExchangeInstID;
+//    root["ExchangeID"] = pData->ExchangeID;
+//    root["ExchangeInstID"] = pData->ExchangeInstID;
     root["LastPrice"] = pData->LastPrice;
     root["PreSettlementPrice"] = pData->PreSettlementPrice;
     root["PreClosePrice"] = pData->PreClosePrice;
@@ -121,31 +125,33 @@ void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pData) {
     root["SettlementPrice"] = pData->SettlementPrice;
     root["UpperLimitPrice"] = pData->UpperLimitPrice;
     root["LowerLimitPrice"] = pData->LowerLimitPrice;
-    root["PreDelta"] = pData->PreDelta;
-    root["CurrDelta"] = pData->CurrDelta;
+//    root["PreDelta"] = pData->PreDelta;
+//    root["CurrDelta"] = pData->CurrDelta;
     root["UpdateMillisec"] = pData->UpdateMillisec;
     root["BidPrice1"] = pData->BidPrice1;
     root["BidVolume1"] = pData->BidVolume1;
     root["AskPrice1"] = pData->AskPrice1;
     root["AskVolume1"] = pData->AskVolume1;
-    root["BidPrice2"] = pData->BidPrice2;
-    root["BidVolume2"] = pData->BidVolume2;
-    root["AskPrice2"] = pData->AskPrice2;
-    root["AskVolume2"] = pData->AskVolume2;
-    root["BidPrice3"] = pData->BidPrice3;
-    root["BidVolume3"] = pData->BidVolume3;
-    root["AskPrice3"] = pData->AskPrice3;
-    root["AskVolume3"] = pData->AskVolume3;
-    root["BidPrice4"] = pData->BidPrice4;
-    root["BidVolume4"] = pData->BidVolume4;
-    root["AskPrice4"] = pData->AskPrice4;
-    root["AskVolume4"] = pData->AskVolume4;
-    root["BidPrice5"] = pData->BidPrice5;
-    root["BidVolume5"] = pData->BidVolume5;
-    root["AskPrice5"] = pData->AskPrice5;
-    root["AskVolume5"] = pData->AskVolume5;
+//    root["BidPrice2"] = pData->BidPrice2;
+//    root["BidVolume2"] = pData->BidVolume2;
+//    root["AskPrice2"] = pData->AskPrice2;
+//    root["AskVolume2"] = pData->AskVolume2;
+//    root["BidPrice3"] = pData->BidPrice3;
+//    root["BidVolume3"] = pData->BidVolume3;
+//    root["AskPrice3"] = pData->AskPrice3;
+//    root["AskVolume3"] = pData->AskVolume3;
+//    root["BidPrice4"] = pData->BidPrice4;
+//    root["BidVolume4"] = pData->BidVolume4;
+//    root["AskPrice4"] = pData->AskPrice4;
+//    root["AskVolume4"] = pData->AskVolume4;
+//    root["BidPrice5"] = pData->BidPrice5;
+//    root["BidVolume5"] = pData->BidVolume5;
+//    root["AskPrice5"] = pData->AskPrice5;
+//    root["AskVolume5"] = pData->AskVolume5;
     root["AveragePrice"] = pData->AveragePrice;
     root["ActionDay"] = pData->ActionDay;
+    root["UpdateTime"] = pData->UpdateTime;
+    Json::FastWriter writer;
     publisher.publish(CHANNEL_MARKET_DATA + "OnRtnDepthMarketData:" + root["InstrumentID"].asString(),
                       writer.write(root));
 }
