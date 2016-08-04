@@ -157,7 +157,7 @@ int ReqOrderInsert(const Json::Value &root) {
         req.StopPrice = root["StopPrice"].asDouble();
     }
     req.VolumeTotalOriginal = root["VolumeTotalOriginal"].asInt();
-    req.OrderPriceType = root["OrderPriceType"].asString()[0];
+    req.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
     req.CombOffsetFlag[0] = root["CombOffsetFlag"].asString()[0];
@@ -346,15 +346,17 @@ void handle_command() {
             query_finished = false;
             start = std::chrono::high_resolution_clock::now();
         }
-        cout << "calling " << cmd.cmd << endl;
+        cout << "发送命令 " << cmd.cmd << endl;
         int iResult = (func->second)(cmd.arg);
-        cout << "rst=" << iResult << endl;
+        Json::Value err = "发送成功";
+        if (iResult == -1)
+            err = "因网络原因发送失败";
+        else if (iResult == -2)
+            err = "未处理请求队列总数量超限";
+        else if (iResult == -3)
+            err = "每秒发送请求数量超限";
+        cout << "结果: " << err << endl;
         if (iResult != 0) {
-            Json::Value err = "failed";
-            if (iResult == -2)
-                err = "未处理请求超过许可数";
-            else if (iResult == -3)
-                err = "每秒发送请求数超过许可数";
             Json::FastWriter writer;
             publisher.publish(CHANNEL_MARKET_DATA + "OnRspError:" + cmd.arg["RequestID"].asString(),
                               writer.write(err));
