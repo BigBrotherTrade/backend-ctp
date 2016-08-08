@@ -46,6 +46,9 @@ public:
     virtual void OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateField *pStruct,
                                               CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
 
+    ///合约交易状态通知
+    virtual void OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField *pInstrumentStatus);
+
     ///请求查询合约手续费率响应
     virtual void OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField *pInstrumentCommissionRate,
                                                   CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);

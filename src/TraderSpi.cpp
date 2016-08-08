@@ -59,10 +59,15 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspUserLogin:" + ntos(nRequestID), writer.write(root));
-    shared_ptr<CThostFtdcQrySettlementInfoConfirmField> req(new CThostFtdcQrySettlementInfoConfirmField);
+    cout << "直接确认结算单。" << endl;
+    shared_ptr<CThostFtdcSettlementInfoConfirmField> req(new CThostFtdcSettlementInfoConfirmField);
     strcpy(req->BrokerID, BROKER_ID.c_str());
     strcpy(req->InvestorID, INVESTOR_ID.c_str());
-    pTraderApi->ReqQrySettlementInfoConfirm(req.get(), nRequestID+1);
+    pTraderApi->ReqSettlementInfoConfirm(req.get(), nRequestID+1);
+//    shared_ptr<CThostFtdcQrySettlementInfoConfirmField> req(new CThostFtdcQrySettlementInfoConfirmField);
+//    strcpy(req->BrokerID, BROKER_ID.c_str());
+//    strcpy(req->InvestorID, INVESTOR_ID.c_str());
+//    pTraderApi->ReqQrySettlementInfoConfirm(req.get(), nRequestID+1);
 }
 
 void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pStruct,
@@ -158,6 +163,13 @@ void CTraderSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspSettlementInfoConfirm:" + ntos(nRequestID), writer.write(root));
+    CThostFtdcQryInstrumentCommissionRateField req;
+    memset(&req, 0, sizeof(req));
+    strcpy(req.BrokerID, BROKER_ID.c_str());
+    strcpy(req.InvestorID, INVESTOR_ID.c_str());
+    strcpy(req.InstrumentID, "IF1609");
+    iTradeRequestID = 12345;
+    pTraderApi->ReqQryInstrumentCommissionRate(&req, iTradeRequestID);
 }
 
 void CTraderSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pStruct, CThostFtdcRspInfoField *pRspInfo,
@@ -755,6 +767,21 @@ void CTraderSpi::OnRtnTrade(CThostFtdcTradeField *pStruct) {
     root["TradeSource"] = pStruct->TradeSource;
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRtnTrade:" + root["OrderRef"].asString(),
+                      writer.write(root));
+}
+
+void CTraderSpi::OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField *pStruct) {
+    Json::Value root;
+    root["ExchangeID"] = pStruct->ExchangeID;
+    root["ExchangeInstID"] = pStruct->ExchangeInstID;
+    root["SettlementGroupID"] = pStruct->SettlementGroupID;
+    root["InstrumentID"] = pStruct->InstrumentID;
+    root["InstrumentStatus"] = pStruct->InstrumentStatus;
+    root["TradingSegmentSN"] = pStruct->TradingSegmentSN;
+    root["EnterTime"] = pStruct->EnterTime;
+    root["EnterReason"] = pStruct->EnterReason;
+    Json::FastWriter writer;
+    publisher.publish(CHANNEL_TRADE_DATA + "OnRtnInstrumentStatus:" + root["InstrumentID"].asString(),
                       writer.write(root));
 }
 

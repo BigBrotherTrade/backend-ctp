@@ -162,7 +162,7 @@ int ReqOrderInsert(const Json::Value &root) {
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
     req.CombOffsetFlag[0] = root["CombOffsetFlag"].asString()[0];
     req.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
-    req.VolumeCondition = THOST_FTDC_VC_CV;
+    req.VolumeCondition = THOST_FTDC_VC_AV;
     req.MinVolume = 1;
     req.ForceCloseReason = THOST_FTDC_FCC_NotForceClose;
     req.ContingentCondition = root["ContingentCondition"].asString()[0];
