@@ -132,25 +132,11 @@ void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pData) {
     root["BidVolume1"] = pData->BidVolume1;
     root["AskPrice1"] = pData->AskPrice1;
     root["AskVolume1"] = pData->AskVolume1;
-//    root["BidPrice2"] = pData->BidPrice2;
-//    root["BidVolume2"] = pData->BidVolume2;
-//    root["AskPrice2"] = pData->AskPrice2;
-//    root["AskVolume2"] = pData->AskVolume2;
-//    root["BidPrice3"] = pData->BidPrice3;
-//    root["BidVolume3"] = pData->BidVolume3;
-//    root["AskPrice3"] = pData->AskPrice3;
-//    root["AskVolume3"] = pData->AskVolume3;
-//    root["BidPrice4"] = pData->BidPrice4;
-//    root["BidVolume4"] = pData->BidVolume4;
-//    root["AskPrice4"] = pData->AskPrice4;
-//    root["AskVolume4"] = pData->AskVolume4;
-//    root["BidPrice5"] = pData->BidPrice5;
-//    root["BidVolume5"] = pData->BidVolume5;
-//    root["AskPrice5"] = pData->AskPrice5;
-//    root["AskVolume5"] = pData->AskVolume5;
     root["AveragePrice"] = pData->AveragePrice;
     root["ActionDay"] = pData->ActionDay;
-    root["UpdateTime"] = pData->UpdateTime;
+    char time_str[32] = {0};
+    sprintf(time_str, "%s %s:%d", pData->ActionDay, pData->UpdateTime, pData->UpdateMillisec * 1000);
+    root["UpdateTime"] = string(time_str);
     Json::FastWriter writer;
     publisher.publish(CHANNEL_MARKET_DATA + "OnRtnDepthMarketData:" + root["InstrumentID"].asString(),
                       writer.write(root));

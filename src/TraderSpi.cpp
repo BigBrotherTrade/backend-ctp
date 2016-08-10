@@ -56,6 +56,9 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
         FRONT_ID = pStruct->FrontID;
         SESSION_ID = pStruct->SessionID;
         trade_login = true;
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspUserLogin:" + ntos(nRequestID), writer.write(root));
@@ -84,6 +87,9 @@ void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFi
         root["InvestorID"] = pStruct->InvestorID;
         root["ConfirmDate"] = pStruct->ConfirmDate;
         root["ConfirmTime"] = pStruct->ConfirmTime;
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspQrySettlementInfoConfirm:" + ntos(nRequestID), writer.write(root));
@@ -99,6 +105,9 @@ void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFi
         cout << "上次结算单确认时间=" << std::put_time(&tm, "%F %T") << endl;
         auto now = std::chrono::system_clock::now();
         hours = std::chrono::duration_cast<std::chrono::hours>(now-confirm_date).count();
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
     }
     if (hours >= 24) {
         cout << "查询结算单.." << endl;
@@ -132,6 +141,9 @@ void CTraderSpi::OnRspQrySettlementInfo(CThostFtdcSettlementInfoField *pStruct,
         char utf_str[512] = {0};
         gb2312toutf8(pStruct->Content, sizeof(pStruct->Content), utf_str, sizeof(utf_str));
         root["Content"] =  utf_str;
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspQrySettlementInfoConfirm:" + ntos(nRequestID), writer.write(root));
@@ -160,16 +172,12 @@ void CTraderSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField
         root["InvestorID"] = pStruct->InvestorID;
         root["ConfirmDate"] = pStruct->ConfirmDate;
         root["ConfirmTime"] = pStruct->ConfirmTime;
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspSettlementInfoConfirm:" + ntos(nRequestID), writer.write(root));
-    CThostFtdcQryInstrumentCommissionRateField req;
-    memset(&req, 0, sizeof(req));
-    strcpy(req.BrokerID, BROKER_ID.c_str());
-    strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    strcpy(req.InstrumentID, "IF1609");
-    iTradeRequestID = 12345;
-    pTraderApi->ReqQryInstrumentCommissionRate(&req, iTradeRequestID);
 }
 
 void CTraderSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pStruct, CThostFtdcRspInfoField *pRspInfo,
@@ -215,6 +223,9 @@ void CTraderSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pStruct, CThostFt
         root["OptionsType"] = pStruct->OptionsType;
         root["UnderlyingMultiple"] = pStruct->UnderlyingMultiple;
         root["CombinationType"] = pStruct->CombinationType;
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspQryInstrument:" + ntos(nRequestID), writer.write(root));
@@ -244,6 +255,9 @@ void CTraderSpi::OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateFiel
         root["ShortMarginRatioByMoney"] = pStruct->ShortMarginRatioByMoney;
         root["ShortMarginRatioByVolume"] = pStruct->ShortMarginRatioByVolume;
         root["IsRelative"] = pStruct->IsRelative;
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspQryInstrumentMarginRate:" + ntos(nRequestID), writer.write(root));
@@ -273,6 +287,9 @@ void CTraderSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommission
         root["CloseRatioByVolume"] = pStruct->CloseRatioByVolume;
         root["CloseTodayRatioByMoney"] = pStruct->CloseTodayRatioByMoney;
         root["CloseTodayRatioByVolume"] = pStruct->CloseTodayRatioByVolume;
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspQryInstrumentCommissionRate:" + ntos(nRequestID), writer.write(root));
@@ -338,6 +355,9 @@ void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pStruct,
         root["SpecProductCloseProfit"] = pStruct->SpecProductCloseProfit;
         root["SpecProductPositionProfitByAlg"] = pStruct->SpecProductPositionProfitByAlg;
         root["SpecProductExchangeMargin"] = pStruct->SpecProductExchangeMargin;
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspQryTradingAccount:" + ntos(nRequestID), writer.write(root));
@@ -401,6 +421,9 @@ void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pStru
         root["StrikeFrozen"] = pStruct->StrikeFrozen;
         root["StrikeFrozenAmount"] = pStruct->StrikeFrozenAmount;
         root["AbandonFrozen"] = pStruct->AbandonFrozen;
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspQryInvestorPosition:" + ntos(nRequestID), writer.write(root));
@@ -446,6 +469,9 @@ void CTraderSpi::OnRspQryInvestorPositionDetail(CThostFtdcInvestorPositionDetail
         root["SettlementPrice"] = pStruct->SettlementPrice;
         root["CloseVolume"] = pStruct->CloseVolume;
         root["CloseAmount"] = pStruct->CloseAmount;
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspQryInvestorPositionDetail:" + ntos(nRequestID), writer.write(root));
@@ -495,6 +521,9 @@ void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pStruct, CThostFtdc
         root["ClientID"] = pStruct->ClientID;
         root["IPAddress"] = pStruct->IPAddress;
         root["MacAddress"] = pStruct->MacAddress;
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspOrderInsert:" + ntos(nRequestID), writer.write(root));
@@ -527,6 +556,9 @@ void CTraderSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pStruct, CTho
         root["InvestUnitID"] = pStruct->InvestUnitID;
         root["IPAddress"] = pStruct->IPAddress;
         root["MacAddress"] = pStruct->MacAddress;
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspOrderAction:" + ntos(nRequestID), writer.write(root));
@@ -605,6 +637,9 @@ void CTraderSpi::OnRspQryOrder(CThostFtdcOrderField *pStruct, CThostFtdcRspInfoF
         root["CurrencyID"] = pStruct->CurrencyID;
         root["IPAddress"] = pStruct->IPAddress;
         root["MacAddress"] = pStruct->MacAddress;
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspQryOrder:" + ntos(nRequestID), writer.write(root));
@@ -654,6 +689,9 @@ void CTraderSpi::OnRspQryTrade(CThostFtdcTradeField *pStruct, CThostFtdcRspInfoF
         root["SettlementID"] = pStruct->SettlementID;
         root["BrokerOrderSeq"] = pStruct->BrokerOrderSeq;
         root["TradeSource"] = pStruct->TradeSource;
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspQryTrade:" + ntos(nRequestID), writer.write(root));
