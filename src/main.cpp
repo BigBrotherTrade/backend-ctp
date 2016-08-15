@@ -16,6 +16,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <iostream>
+#include <sys/stat.h>
 #include "TraderSpi.h"
 #include "MdSpi.h"
 #include "global.h"
@@ -29,6 +30,8 @@ int main(int argc, char *argv[]) {
     readlink("/proc/self/exe", exe_path, 512);
     string path(exe_path);
     path = path.substr(0, path.find_last_of("/")+1);
+    mkdir((path+"trade").c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    mkdir((path+"md").c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (argc > 1) {
         config_file = argv[1];
     } else {
