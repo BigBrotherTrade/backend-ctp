@@ -62,11 +62,11 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspUserLogin:" + ntos(nRequestID), writer.write(root));
-    cout << "直接确认结算单。" << endl;
+    cout << "直接确认结算单。日期=" << pStruct->TradingDay << endl;
     shared_ptr<CThostFtdcSettlementInfoConfirmField> req(new CThostFtdcSettlementInfoConfirmField);
     strcpy(req->BrokerID, BROKER_ID.c_str());
     strcpy(req->InvestorID, INVESTOR_ID.c_str());
-    pTraderApi->ReqSettlementInfoConfirm(req.get(), nRequestID+1);
+    pTraderApi->ReqSettlementInfoConfirm(req.get(), nRequestID + 1);
 //    shared_ptr<CThostFtdcQrySettlementInfoConfirmField> req(new CThostFtdcQrySettlementInfoConfirmField);
 //    strcpy(req->BrokerID, BROKER_ID.c_str());
 //    strcpy(req->InvestorID, INVESTOR_ID.c_str());
@@ -74,7 +74,7 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
 }
 
 void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pStruct,
-                                   CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+                                               CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
     Json::Value root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
@@ -99,12 +99,12 @@ void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFi
         string confirmDate(pStruct->ConfirmDate);
         string confirmTime(pStruct->ConfirmTime);
         std::tm tm = {};
-        std::stringstream ss(confirmDate+confirmTime);
+        std::stringstream ss(confirmDate + confirmTime);
         ss >> std::get_time(&tm, "%Y%m%d%H:%M:%S");
         auto confirm_date = std::chrono::system_clock::from_time_t(std::mktime(&tm));
         cout << "上次结算单确认时间=" << std::put_time(&tm, "%F %T") << endl;
         auto now = std::chrono::system_clock::now();
-        hours = std::chrono::duration_cast<std::chrono::hours>(now-confirm_date).count();
+        hours = std::chrono::duration_cast<std::chrono::hours>(now - confirm_date).count();
         root["empty"] = false;
     } else {
         root["empty"] = true;
@@ -115,7 +115,7 @@ void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFi
         strcpy(req->BrokerID, BROKER_ID.c_str());
         strcpy(req->InvestorID, INVESTOR_ID.c_str());
         strcpy(req->TradingDay, "");
-        pTraderApi->ReqQrySettlementInfo(req.get(), nRequestID+1);
+        pTraderApi->ReqQrySettlementInfo(req.get(), nRequestID + 1);
     }
     if (bIsLast and nRequestID == iTradeRequestID) {
         query_finished = true;
@@ -124,7 +124,7 @@ void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFi
 }
 
 void CTraderSpi::OnRspQrySettlementInfo(CThostFtdcSettlementInfoField *pStruct,
-                            CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+                                        CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
     Json::Value root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
@@ -140,7 +140,7 @@ void CTraderSpi::OnRspQrySettlementInfo(CThostFtdcSettlementInfoField *pStruct,
         root["SequenceNo"] = pStruct->SequenceNo;
         char utf_str[512] = {0};
         gb2312toutf8(pStruct->Content, sizeof(pStruct->Content), utf_str, sizeof(utf_str));
-        root["Content"] =  utf_str;
+        root["Content"] = utf_str;
         root["empty"] = false;
     } else {
         root["empty"] = true;
@@ -151,7 +151,7 @@ void CTraderSpi::OnRspQrySettlementInfo(CThostFtdcSettlementInfoField *pStruct,
     shared_ptr<CThostFtdcSettlementInfoConfirmField> req(new CThostFtdcSettlementInfoConfirmField);
     strcpy(req->BrokerID, BROKER_ID.c_str());
     strcpy(req->InvestorID, INVESTOR_ID.c_str());
-    pTraderApi->ReqSettlementInfoConfirm(req.get(), nRequestID+1);
+    pTraderApi->ReqSettlementInfoConfirm(req.get(), nRequestID + 1);
     if (bIsLast and nRequestID == iTradeRequestID) {
         query_finished = true;
         check_cmd.notify_all();
@@ -565,7 +565,7 @@ void CTraderSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pStruct, CTho
 }
 
 void CTraderSpi::OnRspQryOrder(CThostFtdcOrderField *pStruct, CThostFtdcRspInfoField *pRspInfo, int nRequestID,
-                   bool bIsLast) {
+                               bool bIsLast) {
     Json::Value root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
@@ -650,7 +650,7 @@ void CTraderSpi::OnRspQryOrder(CThostFtdcOrderField *pStruct, CThostFtdcRspInfoF
 }
 
 void CTraderSpi::OnRspQryTrade(CThostFtdcTradeField *pStruct, CThostFtdcRspInfoField *pRspInfo, int nRequestID,
-                   bool bIsLast) {
+                               bool bIsLast) {
     Json::Value root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
@@ -700,6 +700,7 @@ void CTraderSpi::OnRspQryTrade(CThostFtdcTradeField *pStruct, CThostFtdcRspInfoF
         check_cmd.notify_all();
     }
 }
+
 ///报单通知
 void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pStruct) {
     Json::Value root;
@@ -809,6 +810,10 @@ void CTraderSpi::OnRtnTrade(CThostFtdcTradeField *pStruct) {
 }
 
 void CTraderSpi::OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField *pStruct) {
+    /*
+     * {"EnterReason":"1","EnterTime":"15:00:00","ExchangeID":"CFFEX","ExchangeInstID":"IF",
+     * "InstrumentID":"IF","InstrumentStatus":"6","SettlementGroupID":"00000001","TradingSegmentSN":99}
+     */
     Json::Value root;
     root["ExchangeID"] = pStruct->ExchangeID;
     root["ExchangeInstID"] = pStruct->ExchangeInstID;

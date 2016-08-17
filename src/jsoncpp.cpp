@@ -2872,6 +2872,13 @@ namespace Json {
                 duplicateAndPrefixStringValue(value.data(), static_cast<unsigned>(value.length()));
     }
 
+    Value::Value(char value) {
+        initBasic(stringValue, true);
+        std::string tmp(1, value);
+        value_.string_ =
+                duplicateAndPrefixStringValue(tmp.c_str(), 1);
+    }
+
     Value::Value(const StaticString &value) {
         initBasic(stringValue);
         value_.string_ = const_cast<char *>(value.c_str());
