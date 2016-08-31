@@ -138,6 +138,7 @@ void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pData) {
     sprintf(time_str, "%s %s:%d", pData->ActionDay, pData->UpdateTime, pData->UpdateMillisec * 1000);
     root["UpdateTime"] = string(time_str);
     Json::FastWriter writer;
-    publisher.publish(CHANNEL_MARKET_DATA + "OnRtnDepthMarketData:" + root["InstrumentID"].asString(),
-                      writer.write(root));
+    auto data_str = writer.write(root);
+    publisher.publish(CHANNEL_MARKET_DATA + "OnRtnDepthMarketData:" + root["InstrumentID"].asString(), data_str);
+    publisher.set(root["InstrumentID"].asString(), data_str);
 }
