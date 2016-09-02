@@ -624,7 +624,9 @@ void CTraderSpi::OnRspQryOrder(CThostFtdcOrderField *pStruct, CThostFtdcRspInfoF
         root["FrontID"] = pStruct->FrontID;
         root["SessionID"] = pStruct->SessionID;
         root["UserProductInfo"] = pStruct->UserProductInfo;
-        root["StatusMsg"] = pStruct->StatusMsg;
+        char utf_str[512] = {0};
+        gb2312toutf8(pStruct->StatusMsg, sizeof(pStruct->StatusMsg), utf_str, sizeof(utf_str));
+        root["StatusMsg"] = utf_str;
         root["UserForceClose"] = pStruct->UserForceClose;
         root["ActiveUserID"] = pStruct->ActiveUserID;
         root["BrokerOrderSeq"] = pStruct->BrokerOrderSeq;
@@ -754,7 +756,9 @@ void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pStruct) {
     root["FrontID"] = pStruct->FrontID;
     root["SessionID"] = pStruct->SessionID;
     root["UserProductInfo"] = pStruct->UserProductInfo;
-    root["StatusMsg"] = pStruct->StatusMsg;
+    char utf_str[512] = {0};
+    gb2312toutf8(pStruct->StatusMsg, sizeof(pStruct->StatusMsg), utf_str, sizeof(utf_str));
+    root["StatusMsg"] = utf_str;
     root["UserForceClose"] = pStruct->UserForceClose;
     root["ActiveUserID"] = pStruct->ActiveUserID;
     root["BrokerOrderSeq"] = pStruct->BrokerOrderSeq;
