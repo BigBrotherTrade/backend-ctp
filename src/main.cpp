@@ -55,11 +55,13 @@ int main(int argc, char *argv[]) {
     pTraderApi->SubscribePublicTopic(THOST_TERT_QUICK);        // 注册公有流
     pTraderApi->SubscribePrivateTopic(THOST_TERT_QUICK);        // 注册私有流
     pTraderApi->RegisterFront((char *) pt.get<std::string>("ctp.trade").c_str());    // connect
+    pTraderApi->RegisterFront((char *) pt.get<std::string>("ctp.trade_off").c_str());    // connect
 
     pMdApi = CThostFtdcMdApi::CreateFtdcMdApi((path+"md/").c_str());                // 创建MdApi
     CThostFtdcMdSpi *pMdSpi = new CMdSpi();
     pMdApi->RegisterSpi(pMdSpi);                                // 注册事件类
     pMdApi->RegisterFront((char *) pt.get<std::string>("ctp.market").c_str());    // connect
+    pMdApi->RegisterFront((char *) pt.get<std::string>("ctp.market_off").c_str());    // connect
 
     std::thread command_handler(handle_command);
     subscriber.psubscribe(CHANNEL_REQ_PATTERN, handle_req_request);
