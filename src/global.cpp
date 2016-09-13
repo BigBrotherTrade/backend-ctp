@@ -81,9 +81,6 @@ int IsTradeLogin(const Json::Value &root) {
 int MarketReqUserLogin(const Json::Value &root) {
     CThostFtdcReqUserLoginField req;
     memset(&req, 0, sizeof(req));
-    BROKER_ID = root["BrokerID"].asString();
-    INVESTOR_ID = root["UserID"].asString();
-    PASSWORD = root["Password"].asString();
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.UserID, INVESTOR_ID.c_str());
     strcpy(req.Password, PASSWORD.c_str());
@@ -119,20 +116,16 @@ int UnSubscribeMarketData(const Json::Value &root) {
 }
 
 int ReqSettlementInfoConfirm(const Json::Value &root) {
-    CThostFtdcSettlementInfoConfirmField req;
-    memset(&req, 0, sizeof(req));
-    strcpy(req.BrokerID, BROKER_ID.c_str());
-    strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    iTradeRequestID = root["RequestID"].asInt();
-    return pTraderApi->ReqSettlementInfoConfirm(&req, iTradeRequestID);
+    shared_ptr<CThostFtdcSettlementInfoConfirmField> req(new CThostFtdcSettlementInfoConfirmField);
+    strcpy(req->BrokerID, BROKER_ID.c_str());
+    strcpy(req->InvestorID, INVESTOR_ID.c_str());
+    pTraderApi->ReqSettlementInfoConfirm(req.get(), root["RequestID"].asInt());
+    return pTraderApi->ReqSettlementInfoConfirm(req.get(), root["RequestID"].asInt());
 }
 
 int TradeReqUserLogin(const Json::Value &root) {
     CThostFtdcReqUserLoginField req;
     memset(&req, 0, sizeof(req));
-    BROKER_ID = root["BrokerID"].asString();
-    INVESTOR_ID = root["UserID"].asString();
-    PASSWORD = root["Password"].asString();
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.UserID, INVESTOR_ID.c_str());
     strcpy(req.Password, PASSWORD.c_str());
