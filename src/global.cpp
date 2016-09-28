@@ -15,7 +15,6 @@
  */
 #include "global.h"
 #include <iconv.h>
-#include <boost/algorithm/string.hpp>
 
 using namespace std;
 using namespace redox;
@@ -48,7 +47,7 @@ struct RequestCommand {
 queue<RequestCommand> cmd_queue;
 std::mutex mut;
 
-map<string, boost::function<int(const Json::Value &)> > req_func;
+map<string, std::function<int(const Json::Value &)> > req_func;
 
 int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destlen) {
     iconv_t cd;
@@ -281,9 +280,7 @@ int ReqQryTrade(const Json::Value &root) {
 }
 
 void handle_req_request(const string &topic, const string &msg) {
-    std::vector<std::string> strs;
-    boost::split(strs, topic, boost::is_any_of(":"));
-    auto request_type = strs.back();
+    auto request_type = topic.substr(topic.find_last_of(":") + 1);
     Json::Reader reader;
     Json::Value root;
     reader.parse(msg, root);
@@ -334,7 +331,7 @@ void handle_command() {
             continue;
         }
         // 查询类接口调用频率限制为1秒一次
-        if (boost::find_first(cmd.cmd, "ReqQry")) {
+        if (cmd.cmd.find_first_of("ReqQry") != std::string::npos) {
             std::this_thread::sleep_until(start + std::chrono::milliseconds(1000));
             query_finished = false;
             start = std::chrono::high_resolution_clock::now();

@@ -7,14 +7,14 @@ CTP后台服务程序
 安装
 ===
 
-推荐使用最新版gcc编译本程序(gcc >= 6.2)
+推荐使用最新版gcc编译本程序（老版本需要修改 CMakeLists.txt 添加参数 -std=c++11）
 
 * 如果新版gcc装到了/usr/local/bin下面，记得修改CC和CXX变量，指向新版位置:
     
     export CC=/usr/local/bin/gcc
     export CXX=/usr/local/bin/g++
 
-* 安装依赖：sudo yum install cmake hiredis-devel libev-devel boost-devel
+* 安装依赖：sudo yum install cmake hiredis-devel libev-devel
 
 * 安装[redox](https://github.com/hmartiro/redox)
 
@@ -24,7 +24,8 @@ CTP后台服务程序
 
 * 进去源码目录，执行标准cmake安装:
 
-    mkdir build && cd build && cmake .. 
-    
-    make && sudo make install
-    
+    mkdir build && cd build && cmake .. && make
+
+* 编译后的执行程序 backend-ctp 位于项目的 bin 目录下
+
+* 参考config-example.ini，在bin目录下新建config.ini，修改相应配置项，填入服务器的ip和mac地址
