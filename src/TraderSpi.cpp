@@ -63,7 +63,7 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspUserLogin:" + ntos(nRequestID), writer.write(root));
     publisher.set("TradingDay", root["TradingDay"].asString());
-    cout << "直接确认结算单。日期=" << pStruct->TradingDay << endl;
+    logger->info("直接确认结算单。日期=%v", pStruct->TradingDay);
     shared_ptr<CThostFtdcSettlementInfoConfirmField> req(new CThostFtdcSettlementInfoConfirmField);
     strcpy(req->BrokerID, BROKER_ID.c_str());
     strcpy(req->InvestorID, INVESTOR_ID.c_str());
@@ -103,7 +103,7 @@ void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFi
         std::stringstream ss(confirmDate + confirmTime);
         ss >> std::get_time(&tm, "%Y%m%d%H:%M:%S");
         auto confirm_date = std::chrono::system_clock::from_time_t(std::mktime(&tm));
-        cout << "上次结算单确认时间=" << std::put_time(&tm, "%F %T") << endl;
+        logger->info("上次结算单确认时间=%v", std::put_time(&tm, "%F %T"));
         auto now = std::chrono::system_clock::now();
         hours = std::chrono::duration_cast<std::chrono::hours>(now - confirm_date).count();
         root["empty"] = false;
@@ -111,7 +111,7 @@ void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFi
         root["empty"] = true;
     }
     if (hours >= 24) {
-        cout << "查询结算单.." << endl;
+        logger->info("查询结算单..");
         shared_ptr<CThostFtdcQrySettlementInfoField> req(new CThostFtdcQrySettlementInfoField);
         strcpy(req->BrokerID, BROKER_ID.c_str());
         strcpy(req->InvestorID, INVESTOR_ID.c_str());
@@ -148,7 +148,7 @@ void CTraderSpi::OnRspQrySettlementInfo(CThostFtdcSettlementInfoField *pStruct,
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspQrySettlementInfoConfirm:" + ntos(nRequestID), writer.write(root));
-    cout << "确认结算单。" << endl;
+    logger->info("确认结算单。");
     shared_ptr<CThostFtdcSettlementInfoConfirmField> req(new CThostFtdcSettlementInfoConfirmField);
     strcpy(req->BrokerID, BROKER_ID.c_str());
     strcpy(req->InvestorID, INVESTOR_ID.c_str());
@@ -378,7 +378,6 @@ void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pStru
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct) {
-        cout << "进来了!" << endl;
         root["InstrumentID"] = pStruct->InstrumentID;
         root["BrokerID"] = pStruct->BrokerID;
         root["InvestorID"] = pStruct->InvestorID;

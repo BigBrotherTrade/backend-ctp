@@ -28,6 +28,7 @@ TThostFtdcFrontIDType FRONT_ID;             // 前置编号
 TThostFtdcSessionIDType SESSION_ID;         // 会话编号
 CThostFtdcTraderApi* pTraderApi = 0;
 CThostFtdcMdApi* pMdApi = 0;
+el::Logger* logger;
 
 std::atomic<int> iMarketRequestID(0);
 std::atomic<int> iTradeRequestID(0);
@@ -313,6 +314,7 @@ void handle_command() {
     req_func["ReqQryTrade"] = &ReqQryTrade;
 
     auto start = std::chrono::high_resolution_clock::now();
+    logger->info("监听线程已启动.");
     while (keep_running) {
         std::unique_lock<std::mutex> lk(mut);
         bool wait_rst = check_cmd.wait_for(lk, std::chrono::seconds(5), [start] {
@@ -327,7 +329,7 @@ void handle_command() {
         cmd_queue.pop();
         auto func = req_func.find(cmd.cmd);
         if (func == req_func.end()) {
-            cout << "can't find req_func=" << cmd.cmd << endl;
+            logger->error("can't find req_func=%v", cmd.cmd);
             continue;
         }
         // 查询类接口调用频率限制为1秒一次
@@ -336,7 +338,7 @@ void handle_command() {
             query_finished = false;
             start = std::chrono::high_resolution_clock::now();
         }
-        cout << "发送命令 " << cmd.cmd << endl;
+        logger->info("发送命令 %v", cmd.cmd);
         int iResult = (func->second)(cmd.arg);
         Json::Value err = "发送成功";
         if (iResult == -1)
@@ -345,11 +347,12 @@ void handle_command() {
             err = "未处理请求队列总数量超限";
         else if (iResult == -3)
             err = "每秒发送请求数量超限";
-        cout << "结果: " << err << endl;
+        logger->info("结果: %v", err);
         if (iResult != 0) {
             Json::FastWriter writer;
             publisher.publish(CHANNEL_MARKET_DATA + "OnRspError:" + cmd.arg["RequestID"].asString(),
                               writer.write(err));
         }
     }
+    logger->info("监听线程已退出.");
 }

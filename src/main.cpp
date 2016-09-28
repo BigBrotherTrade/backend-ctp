@@ -20,33 +20,41 @@
 #include "MdSpi.h"
 #include "global.h"
 
+INITIALIZE_EASYLOGGINGPP
+
 using namespace std;
 using namespace redox;
 
-int main(int argc, char *argv[]) {
-    char exe_path[512] = {0};
-    if ( readlink( "/proc/self/exe", exe_path, 512 ) < 0) {
-        cout << "readlink falied!" << endl;
-        return 1;
-    }
-    string path(exe_path), config_file;
-    path = path.substr(0, path.find_last_of("/") + 1);
-    mkdir( ( path + "trade" ).c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
-    mkdir( ( path + "md" ).c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
-    if ( argc > 1 ) {
-        config_file = argv[1];
-    } else {
-        config_file = path + "config.ini";
-    }
-    cout << "config-file are: " << config_file << endl;
+int main(int argc, char **argv) {
+    std::string home_str(getenv("HOME"));
+    std::string config_path = home_str + "/.config/backend-ctp/config.ini";
+    std::string log_path = home_str + "/.cache/backend-ctp/log";
+    std::string md_path = home_str + "/.cache/backend-ctp/md/";
+    std::string trade_path = home_str + "/.cache/backend-ctp/trade/";
+    mkdir( log_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
+    mkdir( md_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
+    mkdir( trade_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
+    cout << "config-file: " << config_path << endl;
     std::string 	line, key, split, val;
-    std::ifstream 	ifs(config_file);
+    std::ifstream 	ifs(config_path);
     std::map<std::string, std::string> config;
     while ( std::getline(ifs, line) )
         if ( std::stringstream(line) >> key >> split >> val && key[0] != ';' && split == "=")
             config[key] = val;
 
-    if ( ! publisher.connect( config["host"] ) ) return 1;
+    if ( daemon(0, 0) ) return 1;
+
+    el::Configurations defaultConf;
+    defaultConf.setToDefault();
+    defaultConf.setGlobally( el::ConfigurationType::Format,
+                             "%datetime{%Y-%M-%d %H:%m:%s.%g} (%thread) [%level] %msg" );
+    defaultConf.setGlobally( el::ConfigurationType::Filename, log_path + "/backend-ctp.log" );
+    defaultConf.setGlobally( el::ConfigurationType::MaxLogFileSize, "2097152" );
+    defaultConf.setGlobally( el::ConfigurationType::ToStandardOutput, "0" );
+    el::Loggers::reconfigureLogger("default", defaultConf);
+    logger = el::Loggers::getLogger("default");
+    logger->info("连接 redis %v:%v", config["host"], std::stoi( config["port"] ));
+    if ( ! publisher.connect( config["host"], std::stoi( config["port"] ) ) ) return 1;
     if ( ! subscriber.connect( config["host"], std::stoi( config["port"] ) ) ) return 1;
 
     BROKER_ID = config["broker"];
@@ -54,26 +62,29 @@ int main(int argc, char *argv[]) {
     PASSWORD = config["passwd"];
     IP_ADDRESS = config["ip"];
     MAC_ADDRESS = config["mac"];
-
-    pTraderApi = CThostFtdcTraderApi::CreateFtdcTraderApi( (path+"trade/").c_str() );   // 创建TradeApi
+    logger->info("连接交易服务器..");
+    pTraderApi = CThostFtdcTraderApi::CreateFtdcTraderApi( trade_path.c_str() );   // 创建TradeApi
     CTraderSpi *pTraderSpi = new CTraderSpi();
-    pTraderApi->RegisterSpi(pTraderSpi);                       // 注册事件类
-    pTraderApi->SubscribePublicTopic(THOST_TERT_QUICK);        // 注册公有流
-    pTraderApi->SubscribePrivateTopic(THOST_TERT_QUICK);       // 注册私有流
+    pTraderApi->RegisterSpi(pTraderSpi);                               // 注册事件类
+    pTraderApi->SubscribePublicTopic(THOST_TERT_QUICK);                // 注册公有流
+    pTraderApi->SubscribePrivateTopic(THOST_TERT_QUICK);               // 注册私有流
     pTraderApi->RegisterFront( (char *) config["trade"].c_str() );     // connect
     pTraderApi->RegisterFront( (char *) config["trade_off"].c_str() ); // connect
-
-    pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( (path+"md/").c_str() );                  // 创建MdApi
+    logger->info("连接行情服务器..");
+    pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( md_path.c_str() );      // 创建MdApi
     CThostFtdcMdSpi *pMdSpi = new CMdSpi();
-    pMdApi->RegisterSpi(pMdSpi);                               // 注册事件类
+    pMdApi->RegisterSpi(pMdSpi);                                       // 注册事件类
     pMdApi->RegisterFront( (char *) config["market"].c_str() );        // connect
     pMdApi->RegisterFront( (char *) config["market_off"].c_str() );    // connect
 
+    logger->info("开启订阅线程..");
     std::thread command_handler(handle_command);
     subscriber.psubscribe(CHANNEL_REQ_PATTERN, handle_req_request);
 
     pTraderApi->Init();
     pMdApi->Init();
+
+    logger->info("服务已启动.");
 
     pMdApi->Join();
     pTraderApi->Join();
@@ -83,5 +94,6 @@ int main(int argc, char *argv[]) {
     keep_running = false;
     command_handler.join();
 
+    logger->info("服务已退出.");
     return 0;
 }

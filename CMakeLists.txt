@@ -16,11 +16,11 @@ cmake_minimum_required(VERSION 2.8)
 project(backend-ctp)
 
 SET(CMAKE_BUILD_TYPE "Release")
-# SET(CMAKE_BUILD_TYPE "Debug")
+#SET(CMAKE_BUILD_TYPE "Debug")
 SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb3")
 SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pthread -DELPP_STACKTRACE_ON_CRASH -DELPP_THREAD_SAFE")
 
 include_directories("api")
 include_directories("src")
