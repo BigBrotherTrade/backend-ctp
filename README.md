@@ -28,4 +28,5 @@ CTP后台服务程序
 
 * 编译后的执行程序 backend-ctp 位于项目的 bin 目录下
 
-* 参考config-example.ini，在bin目录下新建config.ini，修改相应配置项，填入服务器的ip和mac地址
+* 参考config-example.ini，在"~/.config/backend-ctp/"目录下新建config.ini，
+填入服务器的ip和mac地址、修改相关配置项。
