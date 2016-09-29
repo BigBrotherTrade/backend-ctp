@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 #include <iostream>
-#include <sys/stat.h>
 #include <unistd.h>
 #include "TraderSpi.h"
 #include "MdSpi.h"
@@ -53,7 +52,7 @@ int main(int argc, char **argv) {
     defaultConf.setGlobally( el::ConfigurationType::ToStandardOutput, "0" );
     el::Loggers::reconfigureLogger("default", defaultConf);
     logger = el::Loggers::getLogger("default");
-    logger->info("连接 redis %v:%v", config["host"], std::stoi( config["port"] ));
+    logger->info("服务重新启动，连接 redis %v:%v", config["host"], std::stoi( config["port"] ));
     if ( ! publisher.connect( config["host"], std::stoi( config["port"] ) ) ) return 1;
     if ( ! subscriber.connect( config["host"], std::stoi( config["port"] ) ) ) return 1;
 
@@ -63,19 +62,28 @@ int main(int argc, char **argv) {
     IP_ADDRESS = config["ip"];
     MAC_ADDRESS = config["mac"];
     logger->info("连接交易服务器..");
+    auto tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    auto tm = *localtime(&tt);
+    auto now = tm.tm_hour * 100 + tm.tm_min;
+    logger->info("当前时间：%v-%v-%v %v:%v:%v",
+                 tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     pTraderApi = CThostFtdcTraderApi::CreateFtdcTraderApi( trade_path.c_str() );   // 创建TradeApi
     CTraderSpi *pTraderSpi = new CTraderSpi();
     pTraderApi->RegisterSpi(pTraderSpi);                               // 注册事件类
     pTraderApi->SubscribePublicTopic(THOST_TERT_QUICK);                // 注册公有流
     pTraderApi->SubscribePrivateTopic(THOST_TERT_QUICK);               // 注册私有流
-    pTraderApi->RegisterFront( (char *) config["trade"].c_str() );     // connect
-    pTraderApi->RegisterFront( (char *) config["trade_off"].c_str() ); // connect
+    if ( now >= 845 and now <= 1520 )
+        pTraderApi->RegisterFront( (char *) config["trade"].c_str() );     // connect
+    else
+        pTraderApi->RegisterFront( (char *) config["trade_off"].c_str() ); // connect
     logger->info("连接行情服务器..");
     pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( md_path.c_str() );      // 创建MdApi
     CThostFtdcMdSpi *pMdSpi = new CMdSpi();
     pMdApi->RegisterSpi(pMdSpi);                                       // 注册事件类
-    pMdApi->RegisterFront( (char *) config["market"].c_str() );        // connect
-    pMdApi->RegisterFront( (char *) config["market_off"].c_str() );    // connect
+    if ( now >= 845 and now <= 1520 )
+        pMdApi->RegisterFront( (char *) config["market"].c_str() );        // connect
+    else
+        pMdApi->RegisterFront( (char *) config["market_off"].c_str() );    // connect
 
     logger->info("开启订阅线程..");
     std::thread command_handler(handle_command);

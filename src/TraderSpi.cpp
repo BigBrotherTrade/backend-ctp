@@ -63,7 +63,7 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspUserLogin:" + ntos(nRequestID), writer.write(root));
     publisher.set("TradingDay", root["TradingDay"].asString());
-    logger->info("直接确认结算单。日期=%v", pStruct->TradingDay);
+    logger->info("直接确认结算单。日期：%v", pStruct->TradingDay);
     shared_ptr<CThostFtdcSettlementInfoConfirmField> req(new CThostFtdcSettlementInfoConfirmField);
     strcpy(req->BrokerID, BROKER_ID.c_str());
     strcpy(req->InvestorID, INVESTOR_ID.c_str());
