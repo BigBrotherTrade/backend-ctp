@@ -72,10 +72,14 @@ int main(int argc, char **argv) {
     pTraderApi->RegisterSpi(pTraderSpi);                               // 注册事件类
     pTraderApi->SubscribePublicTopic(THOST_TERT_QUICK);                // 注册公有流
     pTraderApi->SubscribePrivateTopic(THOST_TERT_QUICK);               // 注册私有流
-    if ( now >= 845 and now <= 1520 )
+    if ( now >= 845 and now <= 1520 ) {
         pTraderApi->RegisterFront( (char *) config["trade"].c_str() );     // connect
-    else
+        logger->info("当前时间：%v 连接线上网关");
+    }
+    else {
         pTraderApi->RegisterFront( (char *) config["trade_off"].c_str() ); // connect
+        logger->info("当前时间：%v 连接离线网关");
+    }
     logger->info("连接行情服务器..");
     pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( md_path.c_str() );      // 创建MdApi
     CThostFtdcMdSpi *pMdSpi = new CMdSpi();
