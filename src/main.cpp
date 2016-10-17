@@ -72,9 +72,9 @@ int main(int argc, char **argv) {
     pTraderApi->RegisterSpi(pTraderSpi);                               // 注册事件类
     pTraderApi->SubscribePublicTopic(THOST_TERT_QUICK);                // 注册公有流
     pTraderApi->SubscribePrivateTopic(THOST_TERT_QUICK);               // 注册私有流
-    if ( now >= 845 and now <= 1520 ) {
+    if ( now >= 845 and now <= 1520 or now >= 2045 and now <= 2359 ) {
         pTraderApi->RegisterFront( (char *) config["trade"].c_str() );     // connect
-        logger->info("当前时间：%v 连接线上网关");
+        logger->info("当前时间：%v 连接线上网关", now);
     }
     else {
         pTraderApi->RegisterFront( (char *) config["trade_off"].c_str() ); // connect
@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( md_path.c_str() );      // 创建MdApi
     CThostFtdcMdSpi *pMdSpi = new CMdSpi();
     pMdApi->RegisterSpi(pMdSpi);                                       // 注册事件类
-    if ( now >= 845 and now <= 1520 )
+    if ( now >= 845 and now <= 1520 or now >= 2045 and now <= 2359 )
         pMdApi->RegisterFront( (char *) config["market"].c_str() );        // connect
     else
         pMdApi->RegisterFront( (char *) config["market_off"].c_str() );    // connect
