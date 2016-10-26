@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
     }
     else {
         pTraderApi->RegisterFront( (char *) config["trade_off"].c_str() ); // connect
-        logger->info("当前时间：%v 连接离线网关");
+        logger->info("当前时间：%v 连接离线网关", now);
     }
     logger->info("连接行情服务器..");
     pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( md_path.c_str() );      // 创建MdApi
