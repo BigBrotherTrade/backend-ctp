@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
     pTraderApi->RegisterSpi(pTraderSpi);                               // 注册事件类
     pTraderApi->SubscribePublicTopic(THOST_TERT_QUICK);                // 注册公有流
     pTraderApi->SubscribePrivateTopic(THOST_TERT_QUICK);               // 注册私有流
-    if ( now >= 845 and now <= 1520 or now >= 2045 and now <= 2359 ) {
+    if ( ( now >= 845 and now <= 1520 ) or ( now >= 2045 and now <= 2359 ) ) {
         pTraderApi->RegisterFront( (char *) config["trade"].c_str() );     // connect
         logger->info("当前时间：%v 连接线上网关", now);
     }
@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( md_path.c_str() );      // 创建MdApi
     CThostFtdcMdSpi *pMdSpi = new CMdSpi();
     pMdApi->RegisterSpi(pMdSpi);                                       // 注册事件类
-    if ( now >= 845 and now <= 1520 or now >= 2045 and now <= 2359 )
+    if ( ( now >= 845 and now <= 1520 ) or ( now >= 2045 and now <= 2359 ) )
         pMdApi->RegisterFront( (char *) config["market"].c_str() );        // connect
     else
         pMdApi->RegisterFront( (char *) config["market_off"].c_str() );    // connect
@@ -96,6 +96,16 @@ int main(int argc, char **argv) {
     pTraderApi->Init();
     pMdApi->Init();
 
+    auto host = config["host"];
+    auto port = std::stoi( config["port"] );
+    std::thread([host, port] {
+        redox::Redox beater;
+        beater.connect( host, port);
+        while ( true ) {
+            beater.commandSync({"SET", "HEARTBEAT:BACKEND_CTP", "1", "EX", "61"});
+            std::this_thread::sleep_for(std::chrono::seconds(60));
+        }
+    }).detach();
     logger->info("服务已启动.");
 
     pMdApi->Join();
