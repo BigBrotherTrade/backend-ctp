@@ -526,7 +526,9 @@ void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pStruct, CThostFtdc
         root["empty"] = true;
     }
     Json::FastWriter writer;
-    publisher.publish(CHANNEL_TRADE_DATA + "OnRspOrderInsert:" + ntos(nRequestID), writer.write(root));
+    auto msg_str = writer.write(root);
+    publisher.publish(CHANNEL_TRADE_DATA + "OnRspOrderInsert:" + ntos(nRequestID), msg_str);
+    logger->info("OnRspOrderInsert：%v", msg_str);
 }
 
 void CTraderSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pStruct, CThostFtdcRspInfoField *pRspInfo,
@@ -561,7 +563,9 @@ void CTraderSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pStruct, CTho
         root["empty"] = true;
     }
     Json::FastWriter writer;
-    publisher.publish(CHANNEL_TRADE_DATA + "OnRspOrderAction:" + ntos(nRequestID), writer.write(root));
+    auto msg_str = writer.write(root);
+    publisher.publish(CHANNEL_TRADE_DATA + "OnRspOrderAction:" + ntos(nRequestID), msg_str);
+    logger->info("OnRspOrderAction：%v", msg_str);
 }
 
 void CTraderSpi::OnRspQryOrder(CThostFtdcOrderField *pStruct, CThostFtdcRspInfoField *pRspInfo, int nRequestID,
@@ -772,7 +776,9 @@ void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pStruct) {
     root["IPAddress"] = pStruct->IPAddress;
     root["MacAddress"] = pStruct->MacAddress;
     Json::FastWriter writer;
-    publisher.publish(CHANNEL_TRADE_DATA + "OnRtnOrder:" + root["OrderRef"].asString(), writer.write(root));
+    auto msg_str = writer.write(root);
+    publisher.publish(CHANNEL_TRADE_DATA + "OnRtnOrder:" + root["OrderRef"].asString(), msg_str);
+    logger->info("OnRtnOrder：%v", msg_str);
 }
 
 ///成交通知
@@ -809,8 +815,9 @@ void CTraderSpi::OnRtnTrade(CThostFtdcTradeField *pStruct) {
     root["BrokerOrderSeq"] = pStruct->BrokerOrderSeq;
     root["TradeSource"] = pStruct->TradeSource;
     Json::FastWriter writer;
-    publisher.publish(CHANNEL_TRADE_DATA + "OnRtnTrade:" + root["OrderRef"].asString(),
-                      writer.write(root));
+    auto msg_str = writer.write(root);
+    publisher.publish(CHANNEL_TRADE_DATA + "OnRtnTrade:" + root["OrderRef"].asString(), msg_str);
+    logger->info("OnRtnTrade：%v", msg_str);
 }
 
 void CTraderSpi::OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField *pStruct) {
@@ -847,7 +854,9 @@ void CTraderSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bo
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = pRspInfo->ErrorID;
     Json::FastWriter writer;
-    publisher.publish(CHANNEL_TRADE_DATA + "OnRspError:" + ntos(nRequestID), writer.write(root));
+    auto msg_str = writer.write(root);
+    publisher.publish(CHANNEL_TRADE_DATA + "OnRspError:" + ntos(nRequestID), msg_str);
     query_finished = true;
     check_cmd.notify_all();
+    logger->info("OnRspError：%v", msg_str);
 }
