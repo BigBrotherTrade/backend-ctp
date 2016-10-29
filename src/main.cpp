@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
     else
         pMdApi->RegisterFront( (char *) config["market_off"].c_str() );    // connect
 
-    logger->info("开启订阅线程..");
+    logger->info("开启命令处理线程..");
     std::thread command_handler(handle_command);
     subscriber.psubscribe(CHANNEL_REQ_PATTERN, handle_req_request);
 

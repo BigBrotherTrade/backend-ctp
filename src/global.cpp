@@ -94,7 +94,7 @@ int SubscribeMarketData(const Json::Value &root) {
         charArray[i] = new char[32];
         strcpy(charArray[i], root[i].asCString());
     }
-    cout << "root.size=" << root.size() << endl;
+    logger->info("订阅合约数量: %v", root.size());
     int iResult = pMdApi->SubscribeMarketData(charArray, root.size());
     for (unsigned int i = 0; i < root.size(); ++i)
         delete charArray[i];
@@ -313,42 +313,51 @@ void handle_command() {
     req_func["ReqQryOrder"] = &ReqQryOrder;
     req_func["ReqQryTrade"] = &ReqQryTrade;
 
+    query_finished = true;
     auto start = std::chrono::high_resolution_clock::now();
-    logger->info("监听线程已启动.");
-    while (keep_running) {
-        std::unique_lock<std::mutex> lk(mut);
-        bool wait_rst = check_cmd.wait_for(lk, std::chrono::seconds(5), [start] {
-            if (cmd_queue.empty())
+    logger->info("命令处理线程已启动.");
+    while ( keep_running ) {
+        std::unique_lock< std::mutex > lk( mut );
+        bool wait_rst = check_cmd.wait_for(lk, std::chrono::seconds(1), [ start ] {
+            // 没有新命令
+            if ( cmd_queue.empty() )
                 return false;
-            if (query_finished)
+            // 新命令是交易类命令， 直接执行
+            if ( cmd_queue.front().cmd.find_first_of("ReqQry") == std::string::npos )
                 return true;
+            // 上一次的查询命令执行完毕，可以执行新查询
+            if ( query_finished )
+                return true;
+            // 上一次的查询命令执行超时，可以执行新查询
             return std::chrono::high_resolution_clock::now() - start > std::chrono::seconds(30);
         });
-        if (!wait_rst) continue;
+        if ( ! wait_rst ) continue;
         RequestCommand cmd = cmd_queue.front();
         cmd_queue.pop();
         auto func = req_func.find(cmd.cmd);
-        if (func == req_func.end()) {
+        if ( func == req_func.end() ) {
             logger->error("can't find req_func=%v", cmd.cmd);
             continue;
         }
         // 查询类接口调用频率限制为1秒一次
-        if (cmd.cmd.find_first_of("ReqQry") != std::string::npos) {
+        if ( cmd.cmd.find_first_of("ReqQry") != std::string::npos ) {
             std::this_thread::sleep_until(start + std::chrono::milliseconds(1000));
-            query_finished = false;
             start = std::chrono::high_resolution_clock::now();
+            query_finished = false;
+        } else {
+            query_finished = true;
         }
         logger->info("发送命令 %v", cmd.cmd);
         int iResult = (func->second)(cmd.arg);
         Json::Value err = "发送成功";
-        if (iResult == -1)
+        if ( iResult == -1 )
             err = "因网络原因发送失败";
-        else if (iResult == -2)
+        else if ( iResult == -2 )
             err = "未处理请求队列总数量超限";
-        else if (iResult == -3)
+        else if ( iResult == -3 )
             err = "每秒发送请求数量超限";
         logger->info("结果: %v", err);
-        if (iResult != 0) {
+        if ( iResult ) {
             Json::FastWriter writer;
             publisher.publish(CHANNEL_MARKET_DATA + "OnRspError:" + cmd.arg["RequestID"].asString(),
                               writer.write(err));
