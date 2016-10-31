@@ -290,6 +290,7 @@ void handle_req_request(const string &topic, const string &msg) {
     rc.cmd = request_type;
     rc.arg = root;
     cmd_queue.push(rc);
+    logger->info("queue_size: %v, cmd: %v, msg: %v", cmd_queue.size(), request_type, msg);
     check_cmd.notify_all();
 }
 
@@ -317,21 +318,23 @@ void handle_command() {
     auto start = std::chrono::high_resolution_clock::now();
     logger->info("命令处理线程已启动.");
     while ( keep_running ) {
-        std::unique_lock< std::mutex > lk( mut );
-        bool wait_rst = check_cmd.wait_for(lk, std::chrono::seconds(1), [ start ] {
-            // 没有新命令
-            if ( cmd_queue.empty() )
-                return false;
-            // 新命令是交易类命令， 直接执行
-            if ( cmd_queue.front().cmd.find_first_of("ReqQry") == std::string::npos )
-                return true;
-            // 上一次的查询命令执行完毕，可以执行新查询
-            if ( query_finished )
-                return true;
-            // 上一次的查询命令执行超时，可以执行新查询
-            return std::chrono::high_resolution_clock::now() - start > std::chrono::seconds(30);
-        });
-        if ( ! wait_rst ) continue;
+        if ( cmd_queue.empty() ) {
+            std::unique_lock< std::mutex > lk( mut );
+            bool wait_rst = check_cmd.wait_for(lk, std::chrono::seconds(1), [ start ] {
+                // 没有新命令
+                if ( cmd_queue.empty() )
+                    return false;
+                // 新命令是交易类命令， 直接执行
+                if ( cmd_queue.front().cmd.find_first_of("ReqQry") == std::string::npos )
+                    return true;
+                // 上一次的查询命令执行完毕，可以执行新查询
+                if ( query_finished )
+                    return true;
+                // 上一次的查询命令执行超时，可以执行新查询
+                return std::chrono::high_resolution_clock::now() - start > std::chrono::seconds(30);
+            });
+            if ( ! wait_rst ) continue;
+        }
         RequestCommand cmd = cmd_queue.front();
         cmd_queue.pop();
         auto func = req_func.find(cmd.cmd);
@@ -347,7 +350,7 @@ void handle_command() {
         } else {
             query_finished = true;
         }
-        logger->info("发送命令 %v", cmd.cmd);
+        logger->info("发送命令 %v : %v", cmd.cmd, cmd.arg);
         int iResult = (func->second)(cmd.arg);
         Json::Value err = "发送成功";
         if ( iResult == -1 )
