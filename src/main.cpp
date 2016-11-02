@@ -65,8 +65,6 @@ int main(int argc, char **argv) {
     auto tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     auto tm = *localtime(&tt);
     auto now = tm.tm_hour * 100 + tm.tm_min;
-    logger->info("当前时间：%v-%v-%v %v:%v:%v",
-                 tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     pTraderApi = CThostFtdcTraderApi::CreateFtdcTraderApi( trade_path.c_str() );   // 创建TradeApi
     CTraderSpi *pTraderSpi = new CTraderSpi();
     pTraderApi->RegisterSpi(pTraderSpi);                               // 注册事件类
@@ -74,11 +72,13 @@ int main(int argc, char **argv) {
     pTraderApi->SubscribePrivateTopic(THOST_TERT_QUICK);               // 注册私有流
     if ( ( now >= 845 and now <= 1520 ) or ( now >= 2045 and now <= 2359 ) ) {
         pTraderApi->RegisterFront( (char *) config["trade"].c_str() );     // connect
-        logger->info("当前时间：%v 连接线上网关", now);
+        logger->info("当前时间：%v-%v-%v %v:%v:%v 连接正常交易网关",
+                     tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     }
     else {
         pTraderApi->RegisterFront( (char *) config["trade_off"].c_str() ); // connect
-        logger->info("当前时间：%v 连接离线网关", now);
+        logger->info("当前时间：%v-%v-%v %v:%v:%v 连接离线查询网关",
+                     tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     }
     logger->info("连接行情服务器..");
     pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( md_path.c_str() );      // 创建MdApi
