@@ -290,7 +290,10 @@ void handle_req_request(const string &topic, const string &msg) {
     rc.cmd = request_type;
     rc.arg = root;
     cmd_queue.push(rc);
-    logger->info("queue_size: %v, cmd: %v, msg: %v", cmd_queue.size(), request_type, msg);
+    if ( request_type.find_first_of("Subscribe") != std::string::npos )
+        logger->info("queue_size: %v, cmd: %v", cmd_queue.size(), request_type);
+    else
+        logger->info("queue_size: %v, cmd: %v, msg: %v", cmd_queue.size(), request_type, msg);
     check_cmd.notify_all();
 }
 
@@ -350,7 +353,10 @@ void handle_command() {
         } else {
             query_finished = true;
         }
-        logger->info("发送命令 %v : %v", cmd.cmd, cmd.arg);
+        if ( cmd.cmd.find_first_of("Subscribe") != std::string::npos )
+            logger->info("发送命令 %v", cmd.cmd);
+        else
+            logger->info("发送命令 %v : %v", cmd.cmd, cmd.arg);
         int iResult = (func->second)(cmd.arg);
         Json::Value err = "发送成功";
         if ( iResult == -1 )
