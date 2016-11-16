@@ -59,6 +59,8 @@ int main(int argc, char **argv) {
     BROKER_ID = config["broker"];
     INVESTOR_ID = config["investor"];
     PASSWORD = config["passwd"];
+    USERPRODUCTINFO = config["userproductinfo"];
+    AUTHCODE = config["authcode"];
     IP_ADDRESS = config["ip"];
     MAC_ADDRESS = config["mac"];
     logger->info("连接交易服务器..");

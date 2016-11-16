@@ -35,9 +35,11 @@ extern CThostFtdcMdApi* pMdApi;
 
 extern std::string MAC_ADDRESS;
 extern std::string IP_ADDRESS;
-extern std::string	BROKER_ID;		    // 经纪公司代码
-extern std::string  INVESTOR_ID;		// 投资者代码
-extern std::string  PASSWORD ;			// 用户密码
+extern std::string BROKER_ID;		    // 经纪公司代码
+extern std::string INVESTOR_ID;		    // 投资者代码
+extern std::string PASSWORD;			// 用户密码
+extern std::string AUTHCODE;			// 认证码
+extern std::string USERPRODUCTINFO;	    // 产品信息
 extern TThostFtdcFrontIDType FRONT_ID;             // 前置编号
 extern TThostFtdcSessionIDType SESSION_ID;         // 会话编号
 

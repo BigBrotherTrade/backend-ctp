@@ -23,7 +23,9 @@ string MAC_ADDRESS;
 string IP_ADDRESS;
 string BROKER_ID;		// 经纪公司代码
 string INVESTOR_ID;		// 投资者代码
-string PASSWORD ;		// 用户密码
+string PASSWORD;		// 用户密码
+string AUTHCODE;		// 认证码
+string USERPRODUCTINFO;	// 产品信息
 TThostFtdcFrontIDType FRONT_ID;             // 前置编号
 TThostFtdcSessionIDType SESSION_ID;         // 会话编号
 CThostFtdcTraderApi* pTraderApi = 0;
