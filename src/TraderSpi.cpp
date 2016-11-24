@@ -86,7 +86,7 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspUserLogin:" + ntos(nRequestID), writer.write(root));
     publisher.set("TradingDay", root["TradingDay"].asString());
-    logger->info("直接确认结算单。日期：%v", pStruct->TradingDay);
+    logger->info("直接确认结算单。交易日：%v", pStruct->TradingDay);
     shared_ptr<CThostFtdcSettlementInfoConfirmField> req(new CThostFtdcSettlementInfoConfirmField);
     strcpy(req->BrokerID, BROKER_ID.c_str());
     strcpy(req->InvestorID, INVESTOR_ID.c_str());
@@ -197,12 +197,13 @@ void CTraderSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField
         root["ConfirmDate"] = pStruct->ConfirmDate;
         root["ConfirmTime"] = pStruct->ConfirmTime;
         root["empty"] = false;
-        publisher.set("ConfirmDate", root["ConfirmDate"].asString());
     } else {
         root["empty"] = true;
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspSettlementInfoConfirm:" + ntos(nRequestID), writer.write(root));
+    publisher.set("ConfirmDate", root["ConfirmDate"].asString());
+    logger->info("结算单确认日期：%v", pStruct->ConfirmDate);
 }
 
 void CTraderSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pStruct, CThostFtdcRspInfoField *pRspInfo,
