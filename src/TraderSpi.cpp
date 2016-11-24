@@ -197,6 +197,7 @@ void CTraderSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField
         root["ConfirmDate"] = pStruct->ConfirmDate;
         root["ConfirmTime"] = pStruct->ConfirmTime;
         root["empty"] = false;
+        publisher.set("ConfirmDate", root["ConfirmDate"].asString());
     } else {
         root["empty"] = true;
     }
