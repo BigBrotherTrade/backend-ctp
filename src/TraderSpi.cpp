@@ -86,14 +86,16 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspUserLogin:" + ntos(nRequestID), writer.write(root));
     auto trading_day = root["TradingDay"].asString();
-    auto last_day1 = publisher.get("TradingDay");
-    auto last_day2 = publisher.get("LastTradingDay");
-    if (trading_day != last_day1) {
-        publisher.set("TradingDay", trading_day);
-        if (last_day2.size() <= 1)
-            publisher.set("LastTradingDay", trading_day);
-        else
-            publisher.set("LastTradingDay", last_day1);
+    if ( trading_day.size() > 0 ) {
+        auto last_day1 = publisher.get("TradingDay");
+        auto last_day2 = publisher.get("LastTradingDay");
+        if (trading_day != last_day1) {
+            publisher.set("TradingDay", trading_day);
+            if (last_day2.size() <= 1)
+                publisher.set("LastTradingDay", trading_day);
+            else
+                publisher.set("LastTradingDay", last_day1);
+        }
     }
     logger->info("直接确认结算单。交易日：%v", pStruct->TradingDay);
     shared_ptr<CThostFtdcSettlementInfoConfirmField> req(new CThostFtdcSettlementInfoConfirmField);
