@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
     auto tm = *localtime(&tt);
     auto now = tm.tm_hour * 100 + tm.tm_min;
     pTraderApi = CThostFtdcTraderApi::CreateFtdcTraderApi( trade_path.c_str() );   // 创建TradeApi
-    CTraderSpi *pTraderSpi = new CTraderSpi();
+    auto *pTraderSpi = new CTraderSpi();
     pTraderApi->RegisterSpi(pTraderSpi);                               // 注册事件类
     pTraderApi->SubscribePublicTopic(THOST_TERT_QUICK);                // 注册公有流
     pTraderApi->SubscribePrivateTopic(THOST_TERT_QUICK);               // 注册私有流

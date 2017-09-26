@@ -91,7 +91,7 @@ int MarketReqUserLogin(const Json::Value &root) {
 }
 
 int SubscribeMarketData(const Json::Value &root) {
-    char **charArray = new char *[root.size()];
+    auto **charArray = new char *[root.size()];
     for (unsigned int i = 0; i < root.size(); ++i) {
         charArray[i] = new char[32];
         strcpy(charArray[i], root[i].asCString());
@@ -105,7 +105,7 @@ int SubscribeMarketData(const Json::Value &root) {
 }
 
 int UnSubscribeMarketData(const Json::Value &root) {
-    char **charArray = new char *[root.size()];
+    auto **charArray = new char *[root.size()];
     for (unsigned int i = 0; i < root.size(); ++i) {
         charArray[i] = new char[32];
         strcpy(charArray[i], root[i].asCString());
@@ -283,7 +283,7 @@ int ReqQryTrade(const Json::Value &root) {
 }
 
 void handle_req_request(const string &topic, const string &msg) {
-    auto request_type = topic.substr(topic.find_last_of(":") + 1);
+    auto request_type = topic.substr(topic.find_last_of(':') + 1);
     Json::Reader reader;
     Json::Value root;
     reader.parse(msg, root);
