@@ -21,19 +21,21 @@
 using namespace std;
 
 void CTraderSpi::OnFrontConnected() {
-//    shared_ptr<CThostFtdcReqAuthenticateField> req(new CThostFtdcReqAuthenticateField);
-//    strcpy(req->BrokerID, BROKER_ID.c_str());
-//    strcpy(req->UserID, INVESTOR_ID.c_str());
-//    strcpy(req->UserProductInfo, USERPRODUCTINFO.c_str());
-//    strcpy(req->AuthCode, AUTHCODE.c_str());
-//    pTraderApi->ReqAuthenticate(req.get(), 1);
-//    logger->info("发送交易终端认证请求..");
-//    publisher.publish(CHANNEL_TRADE_DATA + "OnFrontConnected", "OnFrontConnected");
-    shared_ptr<CThostFtdcReqUserLoginField> req(new CThostFtdcReqUserLoginField);
+    shared_ptr<CThostFtdcReqAuthenticateField> req(new CThostFtdcReqAuthenticateField);
     strcpy(req->BrokerID, BROKER_ID.c_str());
     strcpy(req->UserID, INVESTOR_ID.c_str());
-    strcpy(req->Password, PASSWORD.c_str());
-    pTraderApi->ReqUserLogin(req.get(), 1);
+    strcpy(req->UserProductInfo, USERINFO.c_str());
+    strcpy(req->AuthCode, AUTHCODE.c_str());
+    strcpy(req->AppID, APPID.c_str());
+    pTraderApi->ReqAuthenticate(req.get(), 1);
+    logger->info("发送交易终端认证请求..");
+    publisher.publish(CHANNEL_TRADE_DATA + "OnFrontConnected", "OnFrontConnected");
+
+//    shared_ptr<CThostFtdcReqUserLoginField> req(new CThostFtdcReqUserLoginField);
+//    strcpy(req->BrokerID, BROKER_ID.c_str());
+//    strcpy(req->UserID, INVESTOR_ID.c_str());
+//    strcpy(req->Password, PASSWORD.c_str());
+//    pTraderApi->ReqUserLogin(req.get(), 1);
 }
 
 void CTraderSpi::OnRspAuthenticate(CThostFtdcRspAuthenticateField *pStruct,
@@ -44,6 +46,11 @@ void CTraderSpi::OnRspAuthenticate(CThostFtdcRspAuthenticateField *pStruct,
         logger->info("交易终端认证失败！err: %v", utf_str);
     } else {
         logger->info("交易终端认证成功！");
+        logger->info("AppID: %v", pStruct->AppID);
+        char utf_str[512] = {0};
+        gb2312toutf8(pStruct->UserProductInfo, sizeof(pStruct->UserProductInfo), utf_str, sizeof(utf_str));
+        logger->info("用户产品信息: %v", utf_str);
+
         shared_ptr<CThostFtdcReqUserLoginField> req(new CThostFtdcReqUserLoginField);
         strcpy(req->BrokerID, BROKER_ID.c_str());
         strcpy(req->UserID, INVESTOR_ID.c_str());
