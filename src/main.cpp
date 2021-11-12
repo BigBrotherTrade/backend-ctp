@@ -38,10 +38,10 @@ int main(int argc, char **argv) {
     std::ifstream 	ifs(config_path);
     std::map<std::string, std::string> config;
     while ( std::getline(ifs, line) )
-        if ( std::stringstream(line) >> key >> split >> val && key[0] != ';' && split == "=")
+        if (std::stringstream(line) >> key >> split >> val && key[0] != ';' && split == "=")
             config[key] = val;
 
-    if ( daemon(0, 0) ) return 1;
+//    if ( daemon(0, 0) ) return 1;
 
     el::Configurations defaultConf;
     defaultConf.setToDefault();

@@ -21,16 +21,15 @@
 using namespace std;
 
 void CTraderSpi::OnFrontConnected() {
+    publisher.publish(CHANNEL_TRADE_DATA + "OnFrontConnected", "OnFrontConnected");
     shared_ptr<CThostFtdcReqAuthenticateField> req(new CThostFtdcReqAuthenticateField);
     strcpy(req->BrokerID, BROKER_ID.c_str());
     strcpy(req->UserID, INVESTOR_ID.c_str());
     strcpy(req->UserProductInfo, USERINFO.c_str());
     strcpy(req->AuthCode, AUTHCODE.c_str());
     strcpy(req->AppID, APPID.c_str());
+    logger->info("前置机已连接！发送终端认证请求..");
     pTraderApi->ReqAuthenticate(req.get(), 1);
-    logger->info("发送交易终端认证请求..");
-    publisher.publish(CHANNEL_TRADE_DATA + "OnFrontConnected", "OnFrontConnected");
-
 //    shared_ptr<CThostFtdcReqUserLoginField> req(new CThostFtdcReqUserLoginField);
 //    strcpy(req->BrokerID, BROKER_ID.c_str());
 //    strcpy(req->UserID, INVESTOR_ID.c_str());
@@ -40,23 +39,36 @@ void CTraderSpi::OnFrontConnected() {
 
 void CTraderSpi::OnRspAuthenticate(CThostFtdcRspAuthenticateField *pStruct,
                        CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+    Json::Value root;
+    root["nRequestID"] = nRequestID;
+    root["bIsLast"] = bIsLast;
+    root["ErrorID"] = 0;
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         char utf_str[512] = {0};
         gb2312toutf8(pRspInfo->ErrorMsg, sizeof(pRspInfo->ErrorMsg), utf_str, sizeof(utf_str));
-        logger->info("交易终端认证失败！err: %v", utf_str);
-    } else {
-        logger->info("交易终端认证成功！");
-        logger->info("AppID: %v", pStruct->AppID);
-        char utf_str[512] = {0};
+        logger->info("终端认证失败！err: %v", utf_str);
+        root["ErrorID"] = pRspInfo->ErrorID;
+    } else if (pStruct){
+        root["empty"] = false;
+        root["BrokerID"] = pStruct->BrokerID;
+        root["UserID"] = pStruct->UserID;
+        char utf_str[2048] = {0};
         gb2312toutf8(pStruct->UserProductInfo, sizeof(pStruct->UserProductInfo), utf_str, sizeof(utf_str));
-        logger->info("用户产品信息: %v", utf_str);
+        root["UserProductInfo"] = utf_str;
+        root["AppID"] = pStruct->AppID;
+        root["AppType"] = pStruct->AppType;
+        logger->info("终端认证成功！发送登录请求..");
 
         shared_ptr<CThostFtdcReqUserLoginField> req(new CThostFtdcReqUserLoginField);
         strcpy(req->BrokerID, BROKER_ID.c_str());
         strcpy(req->UserID, INVESTOR_ID.c_str());
         strcpy(req->Password, PASSWORD.c_str());
         pTraderApi->ReqUserLogin(req.get(), 1);
+    } else {
+        root["empty"] = true;
     }
+    Json::FastWriter writer;
+    publisher.publish(CHANNEL_TRADE_DATA + "OnRspAuthenticate:" + ntos(nRequestID), writer.write(root));
 }
 
 void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
@@ -93,18 +105,27 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspUserLogin:" + ntos(nRequestID), writer.write(root));
     auto trading_day = root["TradingDay"].asString();
-    if ( trading_day.size() > 0 ) {
-        auto last_day1 = publisher.get("TradingDay");
-        auto last_day2 = publisher.get("LastTradingDay");
+    if ( !trading_day.empty() ) {
+        string last_day1, last_day2;
+        redox::Command<string>& c1 = publisher.commandSync<string>({"GET", "TradingDay"});
+        if ( c1.ok() )
+            last_day1 = c1.cmd();
+        c1.free();
+        redox::Command<string>& c2 = publisher.commandSync<string>({"GET", "LastTradingDay"});
+        if ( c2.ok() )
+            last_day2 = c2.cmd();
+        c2.free();
         if (trading_day != last_day1) {
             publisher.set("TradingDay", trading_day);
-            if (last_day2.size() <= 1)
+            if ( last_day2.empty() )
                 publisher.set("LastTradingDay", trading_day);
             else
                 publisher.set("LastTradingDay", last_day1);
         }
     }
-    logger->info("直接确认结算单。交易日：%v", pStruct->TradingDay);
+    logger->info("登录成功！账号：%v AppID：%v sessionid：%v 交易日：%v",
+                 pStruct->UserID, APPID, pStruct->SessionID, pStruct->TradingDay);
+    logger->info("直接确认结算单...");
     shared_ptr<CThostFtdcSettlementInfoConfirmField> req(new CThostFtdcSettlementInfoConfirmField);
     strcpy(req->BrokerID, BROKER_ID.c_str());
     strcpy(req->InvestorID, INVESTOR_ID.c_str());
@@ -220,6 +241,7 @@ void CTraderSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField
     }
     Json::FastWriter writer;
     publisher.publish(CHANNEL_TRADE_DATA + "OnRspSettlementInfoConfirm:" + ntos(nRequestID), writer.write(root));
+    logger->info("结算单确认成功！");
 }
 
 void CTraderSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pStruct, CThostFtdcRspInfoField *pRspInfo,

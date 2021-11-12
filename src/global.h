@@ -56,6 +56,6 @@ void handle_req_request(const std::string& topic, const std::string& msg);
 
 int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destlen);
 
-const std::string ntos(const int n);
+std::string ntos(const int n);
 
 void handle_command();

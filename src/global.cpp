@@ -29,8 +29,8 @@ string AUTHCODE;			// 认证码
 string USERINFO;	        // 产品信息
 TThostFtdcFrontIDType FRONT_ID;             // 前置编号
 TThostFtdcSessionIDType SESSION_ID;         // 会话编号
-CThostFtdcTraderApi* pTraderApi = 0;
-CThostFtdcMdApi* pMdApi = 0;
+CThostFtdcTraderApi* pTraderApi = nullptr;
+CThostFtdcMdApi* pMdApi = nullptr;
 el::Logger* logger;
 
 std::atomic<int> iMarketRequestID(0);
@@ -40,22 +40,22 @@ std::atomic<bool> keep_running(true);
 std::atomic<bool> trade_login(false);
 std::atomic<bool> market_login(false);
 std::condition_variable check_cmd;
-redox::Redox publisher;
-redox::Subscriber subscriber;
+redox::Redox publisher; //NOLINT
+redox::Subscriber subscriber; //NOLINT
 
 struct RequestCommand {
     string cmd;
     Json::Value arg;
 };
 
-queue<RequestCommand> cmd_queue;
+queue<RequestCommand> cmd_queue; //NOLINT
 std::mutex mut;
 
 map<string, std::function<int(const Json::Value &)> > req_func;
 
 int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destlen) {
     iconv_t cd;
-    if ((cd = iconv_open("utf-8", "gb2312")) == 0)
+    if ((cd = iconv_open("utf-8", "gb2312")) == nullptr)
         return -1;
     memset(destbuf, 0, destlen);
     char **source = &sourcebuf;
@@ -65,7 +65,7 @@ int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destle
     return 0;
 }
 
-const std::string ntos(const int n) {
+std::string ntos(const int n) {
     std::stringstream newstr;
     newstr << n;
     return newstr.str();
@@ -82,7 +82,7 @@ int IsTradeLogin(const Json::Value &root) {
 }
 
 int MarketReqUserLogin(const Json::Value &root) {
-    CThostFtdcReqUserLoginField req;
+    CThostFtdcReqUserLoginField req{};
     memset(&req, 0, sizeof(req));
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.UserID, INVESTOR_ID.c_str());
@@ -98,7 +98,7 @@ int SubscribeMarketData(const Json::Value &root) {
         strcpy(charArray[i], root[i].asCString());
     }
     logger->info("订阅合约数量: %v", root.size());
-    int iResult = pMdApi->SubscribeMarketData(charArray, root.size());
+    int iResult = pMdApi->SubscribeMarketData(charArray, (int)root.size());
     for (unsigned int i = 0; i < root.size(); ++i)
         delete charArray[i];
     delete[](charArray);
@@ -111,7 +111,7 @@ int UnSubscribeMarketData(const Json::Value &root) {
         charArray[i] = new char[32];
         strcpy(charArray[i], root[i].asCString());
     }
-    int iResult = pMdApi->UnSubscribeMarketData(charArray, root.size());
+    int iResult = pMdApi->UnSubscribeMarketData(charArray, (int)root.size());
     for (unsigned int i = 0; i < root.size(); ++i)
         delete charArray[i];
     delete[](charArray);
@@ -127,7 +127,7 @@ int ReqSettlementInfoConfirm(const Json::Value &root) {
 }
 
 int TradeReqUserLogin(const Json::Value &root) {
-    CThostFtdcReqUserLoginField req;
+    CThostFtdcReqUserLoginField req{};
     memset(&req, 0, sizeof(req));
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.UserID, INVESTOR_ID.c_str());
@@ -137,7 +137,7 @@ int TradeReqUserLogin(const Json::Value &root) {
 }
 
 int ReqOrderInsert(const Json::Value &root) {
-    CThostFtdcInputOrderField req;
+    CThostFtdcInputOrderField req{};
     memset(&req, 0, sizeof(req));
     strcpy(req.InstrumentID, root["InstrumentID"].asCString());
     req.Direction = root["Direction"].asString()[0];
@@ -172,7 +172,7 @@ int ReqOrderInsert(const Json::Value &root) {
 }
 
 int ReqOrderAction(const Json::Value &root) {
-    CThostFtdcInputOrderActionField req;
+    CThostFtdcInputOrderActionField req{};
     memset(&req, 0, sizeof(req));
     strcpy(req.InstrumentID, root["InstrumentID"].asCString());
     strcpy(req.OrderRef, root["OrderRef"].asCString());
@@ -188,7 +188,7 @@ int ReqOrderAction(const Json::Value &root) {
 }
 
 int ReqQrySettlementInfo(const Json::Value &root) {
-    CThostFtdcQrySettlementInfoField req;
+    CThostFtdcQrySettlementInfoField req{};
     memset(&req, 0, sizeof(req));
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
@@ -197,7 +197,7 @@ int ReqQrySettlementInfo(const Json::Value &root) {
 }
 
 int ReqQryInstrument(const Json::Value &root) {
-    CThostFtdcQryInstrumentField req;
+    CThostFtdcQryInstrumentField req{};
     memset(&req, 0, sizeof(req));
     if (!root["InstrumentID"].isNull()) {
         strcpy(req.InstrumentID, root["InstrumentID"].asCString());
@@ -207,7 +207,7 @@ int ReqQryInstrument(const Json::Value &root) {
 }
 
 int ReqQryInstrumentCommissionRate(const Json::Value &root) {
-    CThostFtdcQryInstrumentCommissionRateField req;
+    CThostFtdcQryInstrumentCommissionRateField req{};
     memset(&req, 0, sizeof(req));
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
@@ -219,7 +219,7 @@ int ReqQryInstrumentCommissionRate(const Json::Value &root) {
 }
 
 int ReqQryInstrumentMarginRate(const Json::Value &root) {
-    CThostFtdcQryInstrumentMarginRateField req;
+    CThostFtdcQryInstrumentMarginRateField req{};
     memset(&req, 0, sizeof(req));
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
@@ -231,7 +231,7 @@ int ReqQryInstrumentMarginRate(const Json::Value &root) {
 }
 
 int ReqQryTradingAccount(const Json::Value &root) {
-    CThostFtdcQryTradingAccountField req;
+    CThostFtdcQryTradingAccountField req{};
     memset(&req, 0, sizeof(req));
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
@@ -240,7 +240,7 @@ int ReqQryTradingAccount(const Json::Value &root) {
 }
 
 int ReqQryInvestorPosition(const Json::Value &root) {
-    CThostFtdcQryInvestorPositionField req;
+    CThostFtdcQryInvestorPositionField req{};
     memset(&req, 0, sizeof(req));
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
@@ -252,7 +252,7 @@ int ReqQryInvestorPosition(const Json::Value &root) {
 }
 
 int ReqQryInvestorPositionDetail(const Json::Value &root) {
-    CThostFtdcQryInvestorPositionDetailField req;
+    CThostFtdcQryInvestorPositionDetailField req{};
     memset(&req, 0, sizeof(req));
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
@@ -264,7 +264,7 @@ int ReqQryInvestorPositionDetail(const Json::Value &root) {
 }
 
 int ReqQryOrder(const Json::Value &root) {
-    CThostFtdcQryOrderField req;
+    CThostFtdcQryOrderField req{};
     memset(&req, 0, sizeof(req));
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
@@ -273,7 +273,7 @@ int ReqQryOrder(const Json::Value &root) {
 }
 
 int ReqQryTrade(const Json::Value &root) {
-    CThostFtdcQryTradeField req;
+    CThostFtdcQryTradeField req{};
     memset(&req, 0, sizeof(req));
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
