@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
         if (std::stringstream(line) >> key >> split >> val && key[0] != ';' && split == "=")
             config[key] = val;
 
-//    if ( daemon(0, 0) ) return 1;
+    if ( daemon(0, 0) ) return 1;
 
     el::Configurations defaultConf;
     defaultConf.setToDefault();
