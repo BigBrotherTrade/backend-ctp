@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
     std::thread([host, port] {
         redox::Redox beater;
         beater.connect( host, port);
-        while ( true ) {
+        while ( keep_running ) {
             beater.commandSync({"SET", "HEARTBEAT:BACKEND_CTP", "1", "EX", "61"});
             std::this_thread::sleep_for(std::chrono::seconds(60));
         }

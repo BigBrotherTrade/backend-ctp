@@ -109,11 +109,11 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
         string last_day1, last_day2;
         redox::Command<string>& c1 = publisher.commandSync<string>({"GET", "TradingDay"});
         if ( c1.ok() )
-            last_day1 = c1.cmd();
+            last_day1 = c1.reply();
         c1.free();
         redox::Command<string>& c2 = publisher.commandSync<string>({"GET", "LastTradingDay"});
         if ( c2.ok() )
-            last_day2 = c2.cmd();
+            last_day2 = c2.reply();
         c2.free();
         if (trading_day != last_day1) {
             publisher.set("TradingDay", trading_day);
