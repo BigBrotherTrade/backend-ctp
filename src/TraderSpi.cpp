@@ -25,7 +25,7 @@ void CTraderSpi::OnFrontConnected() {
     shared_ptr<CThostFtdcReqAuthenticateField> req(new CThostFtdcReqAuthenticateField);
     strcpy(req->BrokerID, BROKER_ID.c_str());
     strcpy(req->UserID, INVESTOR_ID.c_str());
-    strcpy(req->UserProductInfo, USERINFO.c_str());
+//    strcpy(req->UserProductInfo, USERINFO.c_str());
     strcpy(req->AuthCode, AUTHCODE.c_str());
     strcpy(req->AppID, APPID.c_str());
     logger->info("前置机已连接！发送终端认证请求..");
@@ -547,6 +547,8 @@ void CTraderSpi::OnRspQryInvestorPositionDetail(CThostFtdcInvestorPositionDetail
 void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pStruct, CThostFtdcRspInfoField *pRspInfo,
                                   int nRequestID, bool bIsLast) {
     Json::Value root;
+    root["AppID"] = APPID;
+    root["SessionID"] = SESSION_ID;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -597,6 +599,8 @@ void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pStruct, CThostFtdc
 void CTraderSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pStruct, CThostFtdcRspInfoField *pRspInfo,
                                   int nRequestID, bool bIsLast) {
     Json::Value root;
+    root["AppID"] = APPID;
+    root["SessionID"] = SESSION_ID;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -634,6 +638,8 @@ void CTraderSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pStruct, CTho
 void CTraderSpi::OnRspQryOrder(CThostFtdcOrderField *pStruct, CThostFtdcRspInfoField *pRspInfo, int nRequestID,
                                bool bIsLast) {
     Json::Value root;
+    root["AppID"] = APPID;
+    root["SessionID"] = SESSION_ID;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -711,16 +717,20 @@ void CTraderSpi::OnRspQryOrder(CThostFtdcOrderField *pStruct, CThostFtdcRspInfoF
         root["empty"] = true;
     }
     Json::FastWriter writer;
-    publisher.publish(CHANNEL_TRADE_DATA + "OnRspQryOrder:" + ntos(nRequestID), writer.write(root));
+    auto msg_str = writer.write(root);
+    publisher.publish(CHANNEL_TRADE_DATA + "OnRspQryOrder:" + ntos(nRequestID), msg_str);
     if (bIsLast and nRequestID == iTradeRequestID) {
         query_finished = true;
         check_cmd.notify_all();
     }
+//    logger->info("OnRspQryOrder：%v", msg_str);
 }
 
 void CTraderSpi::OnRspQryTrade(CThostFtdcTradeField *pStruct, CThostFtdcRspInfoField *pRspInfo, int nRequestID,
                                bool bIsLast) {
     Json::Value root;
+    root["AppID"] = APPID;
+    root["SessionID"] = SESSION_ID;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -773,6 +783,8 @@ void CTraderSpi::OnRspQryTrade(CThostFtdcTradeField *pStruct, CThostFtdcRspInfoF
 ///报单通知
 void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pStruct) {
     Json::Value root;
+    root["AppID"] = APPID;
+    root["SessionID"] = SESSION_ID;
     root["BrokerID"] = pStruct->BrokerID;
     root["InvestorID"] = pStruct->InvestorID;
     root["InstrumentID"] = pStruct->InstrumentID;
@@ -847,6 +859,8 @@ void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pStruct) {
 ///成交通知
 void CTraderSpi::OnRtnTrade(CThostFtdcTradeField *pStruct) {
     Json::Value root;
+    root["AppID"] = APPID;
+    root["SessionID"] = SESSION_ID;
     root["BrokerID"] = pStruct->BrokerID;
     root["InvestorID"] = pStruct->InvestorID;
     root["InstrumentID"] = pStruct->InstrumentID;

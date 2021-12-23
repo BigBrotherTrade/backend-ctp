@@ -170,15 +170,19 @@ int ReqOrderInsert(const Json::Value &root) {
 
 int ReqOrderAction(const Json::Value &root) {
     CThostFtdcInputOrderActionField req{};
-    strcpy(req.InstrumentID, root["InstrumentID"].asCString());
-    strcpy(req.OrderRef, root["OrderRef"].asCString());
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    req.FrontID = FRONT_ID;
-    req.SessionID = SESSION_ID;
+//    strcpy(req.OrderRef, root["OrderRef"].asCString());
+    strcpy(req.ExchangeID, root["ExchangeID"].asCString());
+    strcpy(req.UserID, root["UserID"].asCString());
+    strcpy(req.InstrumentID, root["InstrumentID"].asCString());
+    req.OrderActionRef = root["RequestID"].asInt() + 1;
+//    req.FrontID = FRONT_ID;
+//    req.SessionID = SESSION_ID;
     req.ActionFlag = THOST_FTDC_AF_Delete;
     strcpy(req.IPAddress, IP_ADDRESS.c_str());
     strcpy(req.MacAddress, MAC_ADDRESS.c_str());
+    strcpy(req.OrderSysID, root["OrderSysID"].asCString());
     iTradeRequestID = root["RequestID"].asInt();
     return pTraderApi->ReqOrderAction(&req, iTradeRequestID);
 }

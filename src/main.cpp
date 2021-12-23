@@ -46,7 +46,8 @@ int main(int argc, char **argv) {
     el::Configurations defaultConf;
     defaultConf.setToDefault();
     defaultConf.setGlobally( el::ConfigurationType::Format,
-                             "%datetime{%Y-%M-%d %H:%m:%s.%g} (%thread) [%level] %msg" );
+                             "%datetime{%Y-%M-%d %H:%m:%s.%g} [%level] %msg" );
+//                             "%datetime{%Y-%M-%d %H:%m:%s.%g} (%thread) [%level] %msg" );
     defaultConf.setGlobally( el::ConfigurationType::Filename, log_path + "/backend-ctp.log" );
     defaultConf.setGlobally( el::ConfigurationType::MaxLogFileSize, "2097152" );
     defaultConf.setGlobally( el::ConfigurationType::ToStandardOutput, "0" );
