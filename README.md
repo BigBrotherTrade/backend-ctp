@@ -7,26 +7,24 @@ CTP后台服务程序
 安装
 ===
 
-推荐使用最新版gcc编译本程序（老版本需要修改 CMakeLists.txt 添加参数 -std=c++11）
+Linux
+-----
 
-* 如果新版gcc装到了/usr/local/bin下面，记得修改CC和CXX变量，指向新版位置:
-    
-    export CC=/usr/local/bin/gcc
-    export CXX=/usr/local/bin/g++
-
-* 安装依赖：sudo yum install cmake hiredis-devel libev-devel
-
-* 安装[redox](https://github.com/hmartiro/redox)
-
+* 安装依赖：sudo dnf install cmake hiredis-devel
+* 安装[redis++](https://github.com/sewenew/redis-plus-plus)
 * 将/usr/local/lib, /usr/local/lib64/ 加入 etc/ld.so.conf
-
 * 将api目录中的so文件复制到/usr/lib64/, 执行sudo ldconfig刷新一下
-
 * 进去源码目录，执行标准cmake安装:
 
-    mkdir build && cd build && cmake .. && make
+  mkdir build && cd build && cmake .. && make
 
-* 编译后的执行程序 backend-ctp 位于项目的 bin 目录下
-
+* 编译后的执行程序 backend-ctp 位于/usr/local/bin 目录下
 * 参考config-example.ini，在"~/.config/backend-ctp/"目录下新建config.ini，
-填入服务器的ip和mac地址、修改相关配置项。
+  填入服务器的ip和mac地址、修改相关配置项。
+
+Windows
+-------
+* 源码已包含编译好的hiredis和redis++静态库，不需要额外安装。
+* 使用vs stdio或clion直接编译即可，
+* 编译后的执行程序 backend-ctp.exe 位于项目的 api\win\bin 目录下
+* 参考config-example.ini，在api\win\bin目录下新建config.ini， 填入服务器的ip和mac地址、修改相关配置项。

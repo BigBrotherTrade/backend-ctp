@@ -4,3 +4,4 @@ bin
 cmake-build-debug/
 cmake-build-release/
 *.con
+api/win/backend-ctp
