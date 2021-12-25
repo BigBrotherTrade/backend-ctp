@@ -16,7 +16,7 @@
 #pragma once
 
 #include <cstring>
-#include <redox.hpp>
+#include <sw/redis++/redis++.h>
 #include <ThostFtdcTraderApi.h>
 #include <ThostFtdcMdApi.h>
 #include "json.h"
@@ -27,8 +27,7 @@ static const std::string CHANNEL_TRADE_DATA = "MSG:CTP:RSP:TRADE:";  // trade回
 static const std::string CHANNEL_MARKET_DATA = "MSG:CTP:RSP:MARKET:";// md回调数据
 
 extern el::Logger* logger;
-extern redox::Redox publisher;
-extern redox::Subscriber subscriber;
+extern sw::redis::Redis* publisher;
 
 extern CThostFtdcTraderApi* pTraderApi;
 extern CThostFtdcMdApi* pMdApi;
@@ -44,18 +43,18 @@ extern std::string USERINFO;	        // 产品信息
 extern TThostFtdcFrontIDType FRONT_ID;             // 前置编号
 extern TThostFtdcSessionIDType SESSION_ID;         // 会话编号
 
-extern std::atomic<int> iMarketRequestID;
-extern std::atomic<int> iTradeRequestID;
-extern std::atomic<bool> query_finished;
-extern std::atomic<bool> keep_running;
-extern std::atomic<bool> trade_login;
-extern std::atomic<bool> market_login;
+extern int iMarketRequestID;
+extern int iTradeRequestID;
+extern bool query_finished;
+extern bool keep_running;
+extern bool trade_login;
+extern bool market_login;
 extern std::condition_variable check_cmd;
 
-void handle_req_request(const std::string& topic, const std::string& msg);
+extern void handle_req_request(std::string pattern, std::string channel, std::string msg);
 
 int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destlen);
 
-std::string ntos(const int n);
+std::string ntos(int n);
 
 void handle_command();

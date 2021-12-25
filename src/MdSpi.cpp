@@ -25,16 +25,17 @@ void CMdSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo,
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = pRspInfo->ErrorID;
     Json::FastWriter writer;
-    publisher.publish(CHANNEL_MARKET_DATA + "OnRspError:" + ntos(nRequestID), writer.write(root));
+    publisher->publish(CHANNEL_MARKET_DATA + "OnRspError:" + ntos(nRequestID), writer.write(root));
 }
 
 void CMdSpi::OnFrontDisconnected(int nReason) {
-    publisher.publish(CHANNEL_MARKET_DATA + "OnFrontDisconnected", ntos(nReason));
+    publisher->publish(CHANNEL_MARKET_DATA + "OnFrontDisconnected", ntos(nReason));
     market_login = false;
+    el::Helpers::setThreadName("market");
 }
 
 void CMdSpi::OnHeartBeatWarning(int nTimeLapse) {
-    publisher.publish(CHANNEL_MARKET_DATA + "OnHeartBeatWarning", ntos(nTimeLapse));
+    publisher->publish(CHANNEL_MARKET_DATA + "OnHeartBeatWarning", ntos(nTimeLapse));
 }
 
 void CMdSpi::OnFrontConnected() {
@@ -43,7 +44,7 @@ void CMdSpi::OnFrontConnected() {
     strcpy(req->UserID, INVESTOR_ID.c_str());
     strcpy(req->Password, PASSWORD.c_str());
     pMdApi->ReqUserLogin(req.get(), 1);
-    publisher.publish(CHANNEL_MARKET_DATA + "OnFrontConnected", "OnFrontConnected");
+    publisher->publish(CHANNEL_MARKET_DATA + "OnFrontConnected", "OnFrontConnected");
 }
 
 void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
@@ -72,7 +73,7 @@ void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
         market_login = true;
     }
     Json::FastWriter writer;
-    publisher.publish(CHANNEL_MARKET_DATA + "OnRspUserLogin:" + ntos(nRequestID), writer.write(root));
+    publisher->publish(CHANNEL_MARKET_DATA + "OnRspUserLogin:" + ntos(nRequestID), writer.write(root));
 }
 
 void CMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument,
@@ -87,7 +88,7 @@ void CMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInst
         root["InstrumentID"] = pSpecificInstrument->InstrumentID;
     }
     Json::FastWriter writer;
-    publisher.publish(CHANNEL_MARKET_DATA + "OnRspSubMarketData:" + ntos(nRequestID), writer.write(root));
+    publisher->publish(CHANNEL_MARKET_DATA + "OnRspSubMarketData:" + ntos(nRequestID), writer.write(root));
 }
 
 void CMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument,
@@ -102,7 +103,7 @@ void CMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificIn
         root["InstrumentID"] = pSpecificInstrument->InstrumentID;
     }
     Json::FastWriter writer;
-    publisher.publish(CHANNEL_MARKET_DATA + "OnRspUnSubMarketData:" + ntos(nRequestID), writer.write(root));
+    publisher->publish(CHANNEL_MARKET_DATA + "OnRspUnSubMarketData:" + ntos(nRequestID), writer.write(root));
 }
 
 void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pData) {
@@ -139,6 +140,6 @@ void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pData) {
     root["UpdateTime"] = string(time_str);
     Json::FastWriter writer;
     auto data_str = writer.write(root);
-    publisher.publish(CHANNEL_MARKET_DATA + "OnRtnDepthMarketData:" + root["InstrumentID"].asString(), data_str);
-    publisher.set(root["InstrumentID"].asString(), data_str);
+    publisher->publish(CHANNEL_MARKET_DATA + "OnRtnDepthMarketData:" + root["InstrumentID"].asString(), data_str);
+    publisher->set(root["InstrumentID"].asString(), data_str);
 }

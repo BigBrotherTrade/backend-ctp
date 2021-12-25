@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 #include "global.h"
+#if defined(__linux__)
 #include <iconv.h>
+#elif defined(_WIN32)
+#include <windows.h>
+#endif
+#include <queue>
+#include <thread>
 
 using namespace std;
-using namespace redox;
 
 string MAC_ADDRESS;
 string IP_ADDRESS;
@@ -31,28 +36,28 @@ TThostFtdcFrontIDType FRONT_ID;             // 前置编号
 TThostFtdcSessionIDType SESSION_ID;         // 会话编号
 CThostFtdcTraderApi* pTraderApi = nullptr;
 CThostFtdcMdApi* pMdApi = nullptr;
-el::Logger* logger;
+el::Logger* logger = nullptr;
+sw::redis::Redis* publisher = nullptr;
 
-std::atomic<int> iMarketRequestID(0);
-std::atomic<int> iTradeRequestID(0);
-std::atomic<bool> query_finished(true);
-std::atomic<bool> keep_running(true);
-std::atomic<bool> trade_login(false);
-std::atomic<bool> market_login(false);
+int iMarketRequestID(0);
+int iTradeRequestID(0);
+bool query_finished(true);
+bool keep_running(true);
+bool trade_login(false);
+bool market_login(false);
 std::condition_variable check_cmd;
-redox::Redox publisher; //NOLINT
-redox::Subscriber subscriber; //NOLINT
 
 struct RequestCommand {
     string cmd;
     Json::Value arg;
 };
 
-queue<RequestCommand> cmd_queue; //NOLINT
+queue<RequestCommand> cmd_queue; // NOLINT
 std::mutex mut;
 
 map<string, std::function<int(const Json::Value &)> > req_func;
 
+#if defined(__linux__)
 int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destlen) {
     iconv_t cd;
     if ((cd = iconv_open("utf-8", "gb2312")) == nullptr)
@@ -64,20 +69,32 @@ int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destle
     iconv_close(cd);
     return 0;
 }
+#elif defined(_WIN32)
+int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destlen) {
+    int len = MultiByteToWideChar(CP_ACP, 0, sourcebuf, -1, NULL, 0);
+    auto* wstr = new wchar_t[len+1];
+    memset(wstr, 0, len+1);
+    MultiByteToWideChar(CP_ACP, 0, sourcebuf, -1, wstr, len);
+    len = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL);
+    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, destbuf, len, NULL, NULL);
+    delete[] wstr;
+    return 0;
+}
+#endif
 
-std::string ntos(const int n) {
+std::string ntos(int n) {
     std::stringstream newstr;
     newstr << n;
     return newstr.str();
 }
 
 int IsMarketLogin(const Json::Value &root) {
-    publisher.publish(CHANNEL_MARKET_DATA + "IsMarketLogin", ntos(market_login));
+    publisher->publish(CHANNEL_MARKET_DATA + "IsMarketLogin", ntos(market_login));
     return 1;
 }
 
 int IsTradeLogin(const Json::Value &root) {
-    publisher.publish(CHANNEL_TRADE_DATA + "IsTradeLogin", ntos(trade_login));
+    publisher->publish(CHANNEL_TRADE_DATA + "IsTradeLogin", ntos(trade_login));
     return 1;
 }
 
@@ -277,8 +294,8 @@ int ReqQryTrade(const Json::Value &root) {
     return pTraderApi->ReqQryTrade(&req, iTradeRequestID);
 }
 
-void handle_req_request(const string &topic, const string &msg) {
-    auto request_type = topic.substr(topic.find_last_of(':') + 1);
+void handle_req_request(std::string pattern, std::string channel, std::string msg) {
+    auto request_type = channel.substr(channel.find_last_of(':') + 1);
     Json::Reader reader;
     Json::Value root;
     reader.parse(msg, root);
@@ -316,6 +333,7 @@ void handle_command() {
 
     query_finished = true;
     auto start = std::chrono::high_resolution_clock::now();
+    el::Helpers::setThreadName("command");
     logger->info("命令处理线程已启动.");
     while ( keep_running ) {
         if ( cmd_queue.empty() ) {
@@ -365,7 +383,7 @@ void handle_command() {
         logger->info("结果: %v", err);
         if ( iResult ) {
             Json::FastWriter writer;
-            publisher.publish(CHANNEL_MARKET_DATA + "OnRspError:" + cmd.arg["RequestID"].asString(),
+            publisher->publish(CHANNEL_MARKET_DATA + "OnRspError:" + cmd.arg["RequestID"].asString(),
                               writer.write(err));
         }
     }
