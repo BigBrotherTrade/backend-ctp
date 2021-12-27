@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
             config[key] = val;
 
     #if defined(__linux__)
-    if ( daemon(0, 0) ) return 1;
+    //if ( daemon(0, 0) ) return 1;
     #endif
 
     el::Configurations defaultConf;
@@ -76,6 +76,7 @@ int main(int argc, char **argv) {
     connection_options.host = config["host"];
     connection_options.port = std::stoi( config["port"] );
     connection_options.db = std::stoi( config["db"] );
+    cout << "connecting..." << endl;
     Redis new_pub = Redis(connection_options);
     publisher = &new_pub;
     Subscriber subscriber = publisher->subscriber();
@@ -94,10 +95,10 @@ int main(int argc, char **argv) {
     auto now = tm.tm_hour * 100 + tm.tm_min;
     pTraderApi = CThostFtdcTraderApi::CreateFtdcTraderApi( trade_path.c_str() );   // 创建TradeApi
     auto *pTraderSpi = new CTraderSpi();
-    pTraderApi->RegisterSpi(pTraderSpi);                               // 注册事件类
+    pTraderApi->RegisterSpi(pTraderSpi);                                           // 注册事件类
     pTraderApi->SubscribePublicTopic(THOST_TERT_QUICK);                // 注册公有流
     pTraderApi->SubscribePrivateTopic(THOST_TERT_QUICK);               // 注册私有流
-    if ( now >= 845 && now <= 1520 || now >= 2045 && now <= 2359 ) {
+    if ( (now >= 845 && now <= 1520) || (now >= 2045 && now <= 2359) ) {
         pTraderApi->RegisterFront( (char *) config["trade"].c_str() );     // connect
         logger->info("当前时间：%v-%v-%v %v:%v:%v 连接正常交易网关",
                      tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);

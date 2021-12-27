@@ -5,3 +5,6 @@ cmake-build-debug/
 cmake-build-release/
 *.con
 api/win/backend-ctp
+api/win/backend-ctp.exe
+api/win/backend-ctp.log
+api/win/backend-ctp.pdb
