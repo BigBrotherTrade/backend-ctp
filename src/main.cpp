@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
             config[key] = val;
 
     #if defined(__linux__)
-    //if ( daemon(0, 0) ) return 1;
+    if ( daemon(0, 0) ) return 1;
     #endif
 
     el::Configurations defaultConf;
