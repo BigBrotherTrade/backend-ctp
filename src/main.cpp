@@ -35,6 +35,7 @@ int main(int argc, char **argv) {
     std::string config_path(std::filesystem::current_path().string());
     cout << "config-file: " << config_path + "\\config.ini"<< endl;
     std::string& log_path = config_path;
+    cout << "log-file: " << log_path + "\\backend-ctp.log"<< endl;
     std::string& md_path = config_path;
     std::string& trade_path = config_path;
     std::ifstream 	ifs(config_file.string());
@@ -48,6 +49,7 @@ int main(int argc, char **argv) {
     mkdir( md_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
     mkdir( trade_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
     cout << "config-file: " << config_path << endl;
+    cout << "log-file: " << log_path + "/backend-ctp.log"<< endl;
     std::ifstream 	ifs(config_path);
 #endif
     std::string 	line, key, split, val;
@@ -63,7 +65,6 @@ int main(int argc, char **argv) {
     el::Configurations defaultConf;
     defaultConf.setToDefault();
     defaultConf.setGlobally( el::ConfigurationType::Format,
-//                             "%datetime{%Y-%M-%d %H:%m:%s.%g} [%level] %msg" );
                              "%datetime{%Y-%M-%d %H:%m:%s.%g} (%thread) [%level] %msg" );
     defaultConf.setGlobally( el::ConfigurationType::Filename, log_path + "/backend-ctp.log" );
     defaultConf.setGlobally( el::ConfigurationType::MaxLogFileSize, "2097152" );
@@ -76,11 +77,11 @@ int main(int argc, char **argv) {
     connection_options.host = config["host"];
     connection_options.port = std::stoi( config["port"] );
     connection_options.db = std::stoi( config["db"] );
-    cout << "connecting..." << endl;
+    cout << "connect to redis...";
     Redis new_pub = Redis(connection_options);
     publisher = &new_pub;
     Subscriber subscriber = publisher->subscriber();
-
+    cout << "done!" << endl;
     BROKER_ID = config["broker"];
     INVESTOR_ID = config["investor"];
     PASSWORD = config["passwd"];
@@ -108,14 +109,14 @@ int main(int argc, char **argv) {
         logger->info("当前时间：%v-%v-%v %v:%v:%v 连接离线查询网关",
                      tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     }
-//    logger->info("连接行情服务器..");
-//    pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( md_path.c_str() );      // 创建MdApi
-//    CThostFtdcMdSpi *pMdSpi = new CMdSpi();
-//    pMdApi->RegisterSpi(pMdSpi);                                       // 注册事件类
-//    if ( now >= 845 && now <= 1520 || now >= 2045 && now <= 2359 )
-//        pMdApi->RegisterFront( (char *) config["market"].c_str() );        // connect
-//    else
-//        pMdApi->RegisterFront( (char *) config["market_off"].c_str() );    // connect
+    logger->info("连接行情服务器..");
+    pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( md_path.c_str() );      // 创建MdApi
+    CThostFtdcMdSpi *pMdSpi = new CMdSpi();
+    pMdApi->RegisterSpi(pMdSpi);                                       // 注册事件类
+    if ( now >= 845 && now <= 1520 || now >= 2045 && now <= 2359 )
+        pMdApi->RegisterFront( (char *) config["market"].c_str() );        // connect
+    else
+        pMdApi->RegisterFront( (char *) config["market_off"].c_str() );    // connect
 
     logger->info("开启命令处理线程..");
     std::thread command_handler(handle_command);
@@ -123,7 +124,7 @@ int main(int argc, char **argv) {
     subscriber.on_pmessage(handle_req_request);
 
     pTraderApi->Init();
-//    pMdApi->Init();
+    pMdApi->Init();
 
     std::thread([connection_options] {
         Redis beater = Redis(connection_options);
@@ -138,7 +139,7 @@ int main(int argc, char **argv) {
     }).detach();
     logger->info("服务已启动.");
     pTraderApi->Join();
-//    pMdApi->Join();
+    pMdApi->Join();
     keep_running = false;
     command_handler.join();
     logger->info("服务已退出.");

@@ -45,6 +45,8 @@ void CMdSpi::OnFrontConnected() {
     strcpy(req->Password, PASSWORD.c_str());
     pMdApi->ReqUserLogin(req.get(), 1);
     publisher->publish(CHANNEL_MARKET_DATA + "OnFrontConnected", "OnFrontConnected");
+    el::Helpers::setThreadName("market");
+    logger->info("行情前置已连接！发送行情登录请求..");
 }
 
 void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
@@ -74,6 +76,7 @@ void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
     }
     Json::FastWriter writer;
     publisher->publish(CHANNEL_MARKET_DATA + "OnRspUserLogin:" + ntos(nRequestID), writer.write(root));
+    logger->info("行情登录成功！交易日：%v", pRspUserLogin->TradingDay);
 }
 
 void CMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument,

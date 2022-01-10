@@ -29,7 +29,7 @@ void CTraderSpi::OnFrontConnected() {
     strcpy(req->AuthCode, AUTHCODE.c_str());
     strcpy(req->AppID, APPID.c_str());
     el::Helpers::setThreadName("trade");
-    logger->info("前置机已连接！发送终端认证请求..");
+    logger->info("交易前置已连接！发送交易终端认证请求..");
     pTraderApi->ReqAuthenticate(req.get(), 1);
 //    shared_ptr<CThostFtdcReqUserLoginField> req(new CThostFtdcReqUserLoginField);
 //    strcpy(req->BrokerID, BROKER_ID.c_str());
@@ -47,7 +47,7 @@ void CTraderSpi::OnRspAuthenticate(CThostFtdcRspAuthenticateField *pStruct,
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         char utf_str[512] = {0};
         gb2312toutf8(pRspInfo->ErrorMsg, sizeof(pRspInfo->ErrorMsg), utf_str, sizeof(utf_str));
-        logger->info("终端认证失败！err: %v", utf_str);
+        logger->info("交易终端认证失败！err: %v", utf_str);
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct){
         root["empty"] = false;
@@ -58,7 +58,7 @@ void CTraderSpi::OnRspAuthenticate(CThostFtdcRspAuthenticateField *pStruct,
         root["UserProductInfo"] = utf_str;
         root["AppID"] = pStruct->AppID;
         root["AppType"] = pStruct->AppType;
-        logger->info("终端认证成功！发送登录请求..");
+        logger->info("交易终端认证成功！发送交易登录请求..");
 
         shared_ptr<CThostFtdcReqUserLoginField> req(new CThostFtdcReqUserLoginField);
         strcpy(req->BrokerID, BROKER_ID.c_str());
@@ -122,7 +122,7 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
                 publisher->set("LastTradingDay", last_day1);
         }
     }
-    logger->info("登录成功！账号：%v AppID：%v sessionid：%v 交易日：%v",
+    logger->info("交易前置登录成功！账号：%v AppID：%v sessionid：%v 交易日：%v",
                  pStruct->UserID, APPID, pStruct->SessionID, pStruct->TradingDay);
     logger->info("直接确认结算单...");
     shared_ptr<CThostFtdcSettlementInfoConfirmField> req(new CThostFtdcSettlementInfoConfirmField);
