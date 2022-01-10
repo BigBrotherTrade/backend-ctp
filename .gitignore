@@ -1,13 +1,14 @@
 build
 bin
 .idea
-cmake-build-debug/
-cmake-build-release/
 *.con
 api/win/backend-ctp
 api/win/backend-ctp.exe
+api/win/backend-ctp.exe.manifest
 api/win/backend-ctp.log
 api/win/backend-ctp.pdb
+api/win/config.ini
+api/win/myeasylog.log
 *.exe
 *.log
-api/win/config.ini
+
