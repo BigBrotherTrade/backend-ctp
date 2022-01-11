@@ -19,12 +19,15 @@
 #include <sw/redis++/redis++.h>
 #include <ThostFtdcTraderApi.h>
 #include <ThostFtdcMdApi.h>
-#include "json.h"
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
 #include "easylogging++.h"
 
 static const std::string CHANNEL_REQ_PATTERN = "MSG:CTP:REQ:*"; // 监听req命令
 static const std::string CHANNEL_TRADE_DATA = "MSG:CTP:RSP:TRADE:";  // trade回调通知
 static const std::string CHANNEL_MARKET_DATA = "MSG:CTP:RSP:MARKET:";// md回调数据
+static const std::string HASHSET_TICK = "TICK:";// tick数据
 
 extern el::Logger* logger;
 extern sw::redis::Redis* publisher;

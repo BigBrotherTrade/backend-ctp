@@ -25,22 +25,16 @@ void CTraderSpi::OnFrontConnected() {
     shared_ptr<CThostFtdcReqAuthenticateField> req(new CThostFtdcReqAuthenticateField);
     strcpy(req->BrokerID, BROKER_ID.c_str());
     strcpy(req->UserID, INVESTOR_ID.c_str());
-//    strcpy(req->UserProductInfo, USERINFO.c_str());
     strcpy(req->AuthCode, AUTHCODE.c_str());
     strcpy(req->AppID, APPID.c_str());
     el::Helpers::setThreadName("trade");
     logger->info("交易前置已连接！发送交易终端认证请求..");
     pTraderApi->ReqAuthenticate(req.get(), 1);
-//    shared_ptr<CThostFtdcReqUserLoginField> req(new CThostFtdcReqUserLoginField);
-//    strcpy(req->BrokerID, BROKER_ID.c_str());
-//    strcpy(req->UserID, INVESTOR_ID.c_str());
-//    strcpy(req->Password, PASSWORD.c_str());
-//    pTraderApi->ReqUserLogin(req.get(), 1);
 }
 
 void CTraderSpi::OnRspAuthenticate(CThostFtdcRspAuthenticateField *pStruct,
                        CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-    Json::Value root;
+    rapidjson::Document root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -51,12 +45,9 @@ void CTraderSpi::OnRspAuthenticate(CThostFtdcRspAuthenticateField *pStruct,
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct){
         root["empty"] = false;
-        root["BrokerID"] = pStruct->BrokerID;
-        root["UserID"] = pStruct->UserID;
-        char utf_str[2048] = {0};
-        gb2312toutf8(pStruct->UserProductInfo, sizeof(pStruct->UserProductInfo), utf_str, sizeof(utf_str));
-        root["UserProductInfo"] = utf_str;
-        root["AppID"] = pStruct->AppID;
+        root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+        root["UserID"].SetString(pStruct->UserID, sizeof (pStruct->UserID));
+        root["AppID"].SetString(pStruct->UserID, sizeof (pStruct->UserID));
         root["AppType"] = pStruct->AppType;
         logger->info("交易终端认证成功！发送交易登录请求..");
 
@@ -68,13 +59,15 @@ void CTraderSpi::OnRspAuthenticate(CThostFtdcRspAuthenticateField *pStruct,
     } else {
         root["empty"] = true;
     }
-    Json::FastWriter writer;
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspAuthenticate:" + ntos(nRequestID), writer.write(root));
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspAuthenticate:" + ntos(nRequestID), sb.GetString());
 }
 
 void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
                                 CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-    Json::Value root;
+    rapidjson::Document root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -82,19 +75,19 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct) {
-        root["TradingDay"] = pStruct->TradingDay;
-        root["LoginTime"] = pStruct->LoginTime;
-        root["BrokerID"] = pStruct->BrokerID;
-        root["UserID"] = pStruct->UserID;
-        root["SystemName"] = pStruct->SystemName;
+        root["TradingDay"].SetString(pStruct->TradingDay, sizeof (pStruct->TradingDay));
+        root["LoginTime"].SetString(pStruct->LoginTime, sizeof (pStruct->LoginTime));
+        root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+        root["UserID"].SetString(pStruct->UserID, sizeof (pStruct->UserID));
+        root["SystemName"].SetString(pStruct->SystemName, sizeof (pStruct->SystemName));
         root["FrontID"] = pStruct->FrontID;
         root["SessionID"] = pStruct->SessionID;
-        root["MaxOrderRef"] = pStruct->MaxOrderRef;
-        root["SHFETime"] = pStruct->SHFETime;
-        root["DCETime"] = pStruct->DCETime;
-        root["CZCETime"] = pStruct->CZCETime;
-        root["FFEXTime"] = pStruct->FFEXTime;
-        root["INETime"] = pStruct->INETime;
+        root["MaxOrderRef"].SetString(pStruct->MaxOrderRef, sizeof (pStruct->MaxOrderRef));
+        root["SHFETime"].SetString(pStruct->SHFETime, sizeof (pStruct->SHFETime));
+        root["DCETime"].SetString(pStruct->DCETime, sizeof (pStruct->DCETime));
+        root["CZCETime"].SetString(pStruct->CZCETime, sizeof (pStruct->CZCETime));
+        root["FFEXTime"].SetString(pStruct->FFEXTime, sizeof (pStruct->FFEXTime));
+        root["INETime"].SetString(pStruct->INETime, sizeof (pStruct->INETime));
         // 保存会话参数
         FRONT_ID = pStruct->FrontID;
         SESSION_ID = pStruct->SessionID;
@@ -103,9 +96,11 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
     } else {
         root["empty"] = true;
     }
-    Json::FastWriter writer;
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspUserLogin:" + ntos(nRequestID), writer.write(root));
-    auto trading_day = root["TradingDay"].asString();
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspUserLogin:" + ntos(nRequestID), sb.GetString());
+    std::string trading_day = root["TradingDay"].GetString();
     if ( !trading_day.empty() ) {
         string last_day1, last_day2;
         auto c1 = publisher->get("TradingDay");
@@ -137,7 +132,7 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
 
 void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pStruct,
                                                CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-    Json::Value root;
+    rapidjson::Document root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -145,16 +140,18 @@ void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFi
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct) {
-        root["BrokerID"] = pStruct->BrokerID;
-        root["InvestorID"] = pStruct->InvestorID;
-        root["ConfirmDate"] = pStruct->ConfirmDate;
-        root["ConfirmTime"] = pStruct->ConfirmTime;
+        root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+        root["InvestorID"].SetString(pStruct->InvestorID, sizeof (pStruct->InvestorID));
+        root["ConfirmDate"].SetString(pStruct->ConfirmDate, sizeof (pStruct->ConfirmDate));
+        root["ConfirmTime"].SetString(pStruct->ConfirmTime, sizeof (pStruct->ConfirmTime));
         root["empty"] = false;
     } else {
         root["empty"] = true;
     }
-    Json::FastWriter writer;
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQrySettlementInfoConfirm:" + ntos(nRequestID), writer.write(root));
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQrySettlementInfoConfirm:" + ntos(nRequestID), sb.GetString());
     // ConfirmDate = "20160803"
     long hours = 24;
     if (pStruct) {
@@ -187,7 +184,7 @@ void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFi
 
 void CTraderSpi::OnRspQrySettlementInfo(CThostFtdcSettlementInfoField *pStruct,
                                         CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-    Json::Value root;
+    rapidjson::Document root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -195,20 +192,22 @@ void CTraderSpi::OnRspQrySettlementInfo(CThostFtdcSettlementInfoField *pStruct,
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct) {
-        root["BrokerID"] = pStruct->BrokerID;
-        root["InvestorID"] = pStruct->InvestorID;
-        root["TradingDay"] = pStruct->TradingDay;
+        root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+        root["InvestorID"].SetString(pStruct->InvestorID, sizeof (pStruct->InvestorID));
+        root["TradingDay"].SetString(pStruct->TradingDay, sizeof (pStruct->TradingDay));
         root["SettlementID"] = pStruct->SettlementID;
         root["SequenceNo"] = pStruct->SequenceNo;
         char utf_str[512] = {0};
         gb2312toutf8(pStruct->Content, sizeof(pStruct->Content), utf_str, sizeof(utf_str));
-        root["Content"] = utf_str;
+        root["Content"].SetString(utf_str, 512);
         root["empty"] = false;
     } else {
         root["empty"] = true;
     }
-    Json::FastWriter writer;
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQrySettlementInfoConfirm:" + ntos(nRequestID), writer.write(root));
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQrySettlementInfo:" + ntos(nRequestID), sb.GetString());
     logger->info("确认结算单。");
     shared_ptr<CThostFtdcSettlementInfoConfirmField> req(new CThostFtdcSettlementInfoConfirmField);
     strcpy(req->BrokerID, BROKER_ID.c_str());
@@ -222,7 +221,7 @@ void CTraderSpi::OnRspQrySettlementInfo(CThostFtdcSettlementInfoField *pStruct,
 
 void CTraderSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pStruct,
                                             CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-    Json::Value root;
+    rapidjson::Document root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -230,22 +229,24 @@ void CTraderSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct) {
-        root["BrokerID"] = pStruct->BrokerID;
-        root["InvestorID"] = pStruct->InvestorID;
-        root["ConfirmDate"] = pStruct->ConfirmDate;
-        root["ConfirmTime"] = pStruct->ConfirmTime;
+        root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+        root["InvestorID"].SetString(pStruct->InvestorID, sizeof (pStruct->InvestorID));
+        root["ConfirmDate"].SetString(pStruct->ConfirmDate, sizeof (pStruct->ConfirmDate));
+        root["ConfirmTime"].SetString(pStruct->ConfirmTime, sizeof (pStruct->ConfirmTime));
         root["empty"] = false;
     } else {
         root["empty"] = true;
     }
-    Json::FastWriter writer;
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspSettlementInfoConfirm:" + ntos(nRequestID), writer.write(root));
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspSettlementInfoConfirm:" + ntos(nRequestID), sb.GetString());
     logger->info("结算单确认成功！");
 }
 
 void CTraderSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pStruct, CThostFtdcRspInfoField *pRspInfo,
                                     int nRequestID, bool bIsLast) {
-    Json::Value root;
+    rapidjson::Document root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -253,13 +254,13 @@ void CTraderSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pStruct, CThostFt
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct) {
-        root["InstrumentID"] = pStruct->InstrumentID;
-        root["ExchangeID"] = pStruct->ExchangeID;
+        root["InstrumentID"].SetString(pStruct->InstrumentID, sizeof (pStruct->InstrumentID));
+        root["ExchangeID"].SetString(pStruct->ExchangeID, sizeof (pStruct->ExchangeID));
         char inst_name[64] = {0};
         gb2312toutf8(pStruct->InstrumentName, sizeof(pStruct->InstrumentName), inst_name, 64);
-        root["InstrumentName"] = inst_name;
-        root["ExchangeInstID"] = pStruct->ExchangeInstID;
-        root["ProductID"] = pStruct->ProductID;
+        root["InstrumentName"].SetString(inst_name, sizeof (inst_name));
+        root["ExchangeInstID"].SetString(pStruct->ExchangeInstID, sizeof (pStruct->ExchangeInstID));
+        root["ProductID"].SetString(pStruct->ProductID, sizeof (pStruct->ProductID));
         root["ProductClass"] = pStruct->ProductClass;
         root["DeliveryYear"] = pStruct->DeliveryYear;
         root["DeliveryMonth"] = pStruct->DeliveryMonth;
@@ -269,11 +270,11 @@ void CTraderSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pStruct, CThostFt
         root["MinLimitOrderVolume"] = pStruct->MinLimitOrderVolume;
         root["VolumeMultiple"] = pStruct->VolumeMultiple;
         root["PriceTick"] = pStruct->PriceTick;
-        root["CreateDate"] = pStruct->CreateDate;
-        root["OpenDate"] = pStruct->OpenDate;
-        root["ExpireDate"] = pStruct->ExpireDate;
-        root["StartDelivDate"] = pStruct->StartDelivDate;
-        root["EndDelivDate"] = pStruct->EndDelivDate;
+        root["CreateDate"].SetString(pStruct->CreateDate, sizeof (pStruct->CreateDate));
+        root["OpenDate"].SetString(pStruct->OpenDate, sizeof (pStruct->OpenDate));
+        root["ExpireDate"].SetString(pStruct->ExpireDate, sizeof (pStruct->ExpireDate));
+        root["StartDelivDate"].SetString(pStruct->StartDelivDate, sizeof (pStruct->StartDelivDate));
+        root["EndDelivDate"].SetString(pStruct->EndDelivDate, sizeof (pStruct->EndDelivDate));
         root["InstLifePhase"] = pStruct->InstLifePhase;
         root["IsTrading"] = pStruct->IsTrading;
         root["PositionType"] = pStruct->PositionType;
@@ -281,7 +282,7 @@ void CTraderSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pStruct, CThostFt
         root["LongMarginRatio"] = pStruct->LongMarginRatio;
         root["ShortMarginRatio"] = pStruct->ShortMarginRatio;
         root["MaxMarginSideAlgorithm"] = pStruct->MaxMarginSideAlgorithm;
-        root["UnderlyingInstrID"] = pStruct->UnderlyingInstrID;
+        root["UnderlyingInstrID"].SetString(pStruct->UnderlyingInstrID, sizeof (pStruct->UnderlyingInstrID));
         root["StrikePrice"] = pStruct->StrikePrice;
         root["OptionsType"] = pStruct->OptionsType;
         root["UnderlyingMultiple"] = pStruct->UnderlyingMultiple;
@@ -290,8 +291,10 @@ void CTraderSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pStruct, CThostFt
     } else {
         root["empty"] = true;
     }
-    Json::FastWriter writer;
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryInstrument:" + ntos(nRequestID), writer.write(root));
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryInstrument:" + ntos(nRequestID), sb.GetString());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
         check_cmd.notify_all();
@@ -300,7 +303,7 @@ void CTraderSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pStruct, CThostFt
 
 void CTraderSpi::OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateField *pStruct,
                                               CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-    Json::Value root;
+    rapidjson::Document root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -308,10 +311,10 @@ void CTraderSpi::OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateFiel
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct) {
-        root["InstrumentID"] = pStruct->InstrumentID;
+        root["InstrumentID"].SetString(pStruct->InstrumentID, sizeof (pStruct->InstrumentID));
         root["InvestorRange"] = pStruct->InvestorRange;
-        root["BrokerID"] = pStruct->BrokerID;
-        root["InvestorID"] = pStruct->InvestorID;
+        root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+        root["InvestorID"].SetString(pStruct->InvestorID, sizeof (pStruct->InvestorID));
         root["HedgeFlag"] = pStruct->HedgeFlag;
         root["LongMarginRatioByMoney"] = pStruct->LongMarginRatioByMoney;
         root["LongMarginRatioByVolume"] = pStruct->LongMarginRatioByVolume;
@@ -322,8 +325,10 @@ void CTraderSpi::OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateFiel
     } else {
         root["empty"] = true;
     }
-    Json::FastWriter writer;
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryInstrumentMarginRate:" + ntos(nRequestID), writer.write(root));
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryInstrumentMarginRate:" + ntos(nRequestID), sb.GetString());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
         check_cmd.notify_all();
@@ -332,7 +337,7 @@ void CTraderSpi::OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateFiel
 
 void CTraderSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField *pStruct,
                                                   CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-    Json::Value root;
+    rapidjson::Document root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -340,10 +345,10 @@ void CTraderSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommission
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct) {
-        root["InstrumentID"] = pStruct->InstrumentID;
+        root["InstrumentID"].SetString(pStruct->InstrumentID, sizeof (pStruct->InstrumentID));
         root["InvestorRange"] = pStruct->InvestorRange;
-        root["BrokerID"] = pStruct->BrokerID;
-        root["InvestorID"] = pStruct->InvestorID;
+        root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+        root["InvestorID"].SetString(pStruct->InvestorID, sizeof (pStruct->InvestorID));
         root["OpenRatioByMoney"] = pStruct->OpenRatioByMoney;
         root["OpenRatioByVolume"] = pStruct->OpenRatioByVolume;
         root["CloseRatioByMoney"] = pStruct->CloseRatioByMoney;
@@ -354,8 +359,10 @@ void CTraderSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommission
     } else {
         root["empty"] = true;
     }
-    Json::FastWriter writer;
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryInstrumentCommissionRate:" + ntos(nRequestID), writer.write(root));
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryInstrumentCommissionRate:" + ntos(nRequestID), sb.GetString());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
         check_cmd.notify_all();
@@ -364,7 +371,7 @@ void CTraderSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommission
 
 void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pStruct,
                                         CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-    Json::Value root;
+    rapidjson::Document root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -372,8 +379,8 @@ void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pStruct,
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct) {
-        root["BrokerID"] = pStruct->BrokerID;
-        root["AccountID"] = pStruct->AccountID;
+        root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+        root["AccountID"].SetString(pStruct->AccountID, sizeof (pStruct->AccountID));
         root["PreMortgage"] = pStruct->PreMortgage;
         root["PreCredit"] = pStruct->PreCredit;
         root["PreDeposit"] = pStruct->PreDeposit;
@@ -395,7 +402,7 @@ void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pStruct,
         root["Available"] = pStruct->Available;
         root["WithdrawQuota"] = pStruct->WithdrawQuota;
         root["Reserve"] = pStruct->Reserve;
-        root["TradingDay"] = pStruct->TradingDay;
+        root["TradingDay"].SetString(pStruct->TradingDay, sizeof (pStruct->TradingDay));
         root["SettlementID"] = pStruct->SettlementID;
         root["Credit"] = pStruct->Credit;
         root["Mortgage"] = pStruct->Mortgage;
@@ -403,7 +410,7 @@ void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pStruct,
         root["DeliveryMargin"] = pStruct->DeliveryMargin;
         root["ExchangeDeliveryMargin"] = pStruct->ExchangeDeliveryMargin;
         root["ReserveBalance"] = pStruct->ReserveBalance;
-        root["CurrencyID"] = pStruct->CurrencyID;
+        root["CurrencyID"].SetString(pStruct->CurrencyID, sizeof (pStruct->CurrencyID));
         root["PreFundMortgageIn"] = pStruct->PreFundMortgageIn;
         root["PreFundMortgageOut"] = pStruct->PreFundMortgageOut;
         root["FundMortgageIn"] = pStruct->FundMortgageIn;
@@ -422,8 +429,10 @@ void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pStruct,
     } else {
         root["empty"] = true;
     }
-    Json::FastWriter writer;
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryTradingAccount:" + ntos(nRequestID), writer.write(root));
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryTradingAccount:" + ntos(nRequestID), sb.GetString());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
         check_cmd.notify_all();
@@ -432,7 +441,7 @@ void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pStruct,
 
 void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pStruct,
                                           CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-    Json::Value root;
+    rapidjson::Document root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -440,9 +449,9 @@ void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pStru
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct) {
-        root["InstrumentID"] = pStruct->InstrumentID;
-        root["BrokerID"] = pStruct->BrokerID;
-        root["InvestorID"] = pStruct->InvestorID;
+        root["InstrumentID"].SetString(pStruct->InstrumentID, sizeof (pStruct->InstrumentID));
+        root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+        root["InvestorID"].SetString(pStruct->InvestorID, sizeof (pStruct->InvestorID));
         root["PosiDirection"] = pStruct->PosiDirection;
         root["HedgeFlag"] = pStruct->HedgeFlag;
         root["PositionDate"] = pStruct->PositionDate;
@@ -468,7 +477,7 @@ void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pStru
         root["PositionProfit"] = pStruct->PositionProfit;
         root["PreSettlementPrice"] = pStruct->PreSettlementPrice;
         root["SettlementPrice"] = pStruct->SettlementPrice;
-        root["TradingDay"] = pStruct->TradingDay;
+        root["TradingDay"].SetString(pStruct->TradingDay, sizeof (pStruct->TradingDay));
         root["SettlementID"] = pStruct->SettlementID;
         root["OpenCost"] = pStruct->OpenCost;
         root["ExchangeMargin"] = pStruct->ExchangeMargin;
@@ -487,8 +496,10 @@ void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pStru
     } else {
         root["empty"] = true;
     }
-    Json::FastWriter writer;
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryInvestorPosition:" + ntos(nRequestID), writer.write(root));
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryInvestorPosition:" + ntos(nRequestID), sb.GetString());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
         check_cmd.notify_all();
@@ -497,7 +508,7 @@ void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pStru
 
 void CTraderSpi::OnRspQryInvestorPositionDetail(CThostFtdcInvestorPositionDetailField *pStruct,
                                                 CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-    Json::Value root;
+    rapidjson::Document root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -505,20 +516,20 @@ void CTraderSpi::OnRspQryInvestorPositionDetail(CThostFtdcInvestorPositionDetail
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct) {
-        root["InstrumentID"] = pStruct->InstrumentID;
-        root["BrokerID"] = pStruct->BrokerID;
-        root["InvestorID"] = pStruct->InvestorID;
+        root["InstrumentID"].SetString(pStruct->InstrumentID, sizeof (pStruct->InstrumentID));
+        root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+        root["InvestorID"].SetString(pStruct->InvestorID, sizeof (pStruct->InvestorID));
         root["HedgeFlag"] = pStruct->HedgeFlag;
         root["Direction"] = pStruct->Direction;
-        root["OpenDate"] = pStruct->OpenDate;
-        root["TradeID"] = pStruct->TradeID;
+        root["OpenDate"].SetString(pStruct->OpenDate, sizeof (pStruct->OpenDate));
+        root["TradeID"].SetString(pStruct->TradeID, sizeof (pStruct->TradeID));
         root["Volume"] = pStruct->Volume;
         root["OpenPrice"] = pStruct->OpenPrice;
-        root["TradingDay"] = pStruct->TradingDay;
+        root["TradingDay"].SetString(pStruct->TradingDay, sizeof (pStruct->TradingDay));
         root["SettlementID"] = pStruct->SettlementID;
         root["TradeType"] = pStruct->TradeType;
-        root["CombInstrumentID"] = pStruct->CombInstrumentID;
-        root["ExchangeID"] = pStruct->ExchangeID;
+        root["CombInstrumentID"].SetString(pStruct->CombInstrumentID, sizeof (pStruct->CombInstrumentID));
+        root["ExchangeID"].SetString(pStruct->ExchangeID, sizeof (pStruct->ExchangeID));
         root["CloseProfitByDate"] = pStruct->CloseProfitByDate;
         root["CloseProfitByTrade"] = pStruct->CloseProfitByTrade;
         root["PositionProfitByDate"] = pStruct->PositionProfitByDate;
@@ -535,8 +546,10 @@ void CTraderSpi::OnRspQryInvestorPositionDetail(CThostFtdcInvestorPositionDetail
     } else {
         root["empty"] = true;
     }
-    Json::FastWriter writer;
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryInvestorPositionDetail:" + ntos(nRequestID), writer.write(root));
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryInvestorPositionDetail:" + ntos(nRequestID), sb.GetString());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
         check_cmd.notify_all();
@@ -545,8 +558,8 @@ void CTraderSpi::OnRspQryInvestorPositionDetail(CThostFtdcInvestorPositionDetail
 
 void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pStruct, CThostFtdcRspInfoField *pRspInfo,
                                   int nRequestID, bool bIsLast) {
-    Json::Value root;
-    root["AppID"] = APPID;
+    rapidjson::Document root;
+    root["AppID"].SetString(APPID, root.GetAllocator());
     root["SessionID"] = SESSION_ID;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
@@ -555,50 +568,51 @@ void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pStruct, CThostFtdc
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct) {
-        root["BrokerID"] = pStruct->BrokerID;
-        root["InvestorID"] = pStruct->InvestorID;
-        root["InstrumentID"] = pStruct->InstrumentID;
-        root["OrderRef"] = pStruct->OrderRef;
-        root["UserID"] = pStruct->UserID;
+        root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+        root["InvestorID"].SetString(pStruct->InvestorID, sizeof (pStruct->InvestorID));
+        root["InstrumentID"].SetString(pStruct->InstrumentID, sizeof (pStruct->InstrumentID));
+        root["OrderRef"].SetString(pStruct->OrderRef, sizeof (pStruct->OrderRef));
+        root["UserID"].SetString(pStruct->UserID, sizeof (pStruct->UserID));
         root["OrderPriceType"] = pStruct->OrderPriceType;
         root["Direction"] = pStruct->Direction;
-        root["CombOffsetFlag"] = pStruct->CombOffsetFlag;
-        root["CombHedgeFlag"] = pStruct->CombHedgeFlag;
+        root["CombOffsetFlag"].SetString(pStruct->CombOffsetFlag, sizeof (pStruct->CombOffsetFlag));
+        root["CombHedgeFlag"].SetString(pStruct->CombHedgeFlag, sizeof (pStruct->CombHedgeFlag));
         root["LimitPrice"] = pStruct->LimitPrice;
         root["VolumeTotalOriginal"] = pStruct->VolumeTotalOriginal;
         root["TimeCondition"] = pStruct->TimeCondition;
-        root["GTDDate"] = pStruct->GTDDate;
+        root["GTDDate"].SetString(pStruct->GTDDate, sizeof (pStruct->GTDDate));
         root["VolumeCondition"] = pStruct->VolumeCondition;
         root["MinVolume"] = pStruct->MinVolume;
         root["ContingentCondition"] = pStruct->ContingentCondition;
         root["StopPrice"] = pStruct->StopPrice;
         root["ForceCloseReason"] = pStruct->ForceCloseReason;
         root["IsAutoSuspend"] = pStruct->IsAutoSuspend;
-        root["BusinessUnit"] = pStruct->BusinessUnit;
+        root["BusinessUnit"].SetString(pStruct->BusinessUnit, sizeof (pStruct->BusinessUnit));
         root["RequestID"] = pStruct->RequestID;
         root["UserForceClose"] = pStruct->UserForceClose;
         root["IsSwapOrder"] = pStruct->IsSwapOrder;
-        root["ExchangeID"] = pStruct->ExchangeID;
-        root["InvestUnitID"] = pStruct->InvestUnitID;
-        root["AccountID"] = pStruct->AccountID;
-        root["CurrencyID"] = pStruct->CurrencyID;
-        root["ClientID"] = pStruct->ClientID;
-        root["IPAddress"] = pStruct->IPAddress;
-        root["MacAddress"] = pStruct->MacAddress;
+        root["ExchangeID"].SetString(pStruct->ExchangeID, sizeof (pStruct->ExchangeID));
+        root["InvestUnitID"].SetString(pStruct->InvestUnitID, sizeof (pStruct->InvestUnitID));
+        root["AccountID"].SetString(pStruct->AccountID, sizeof (pStruct->AccountID));
+        root["CurrencyID"].SetString(pStruct->CurrencyID, sizeof (pStruct->CurrencyID));
+        root["ClientID"].SetString(pStruct->ClientID, sizeof (pStruct->ClientID));
+        root["IPAddress"].SetString(pStruct->IPAddress, sizeof (pStruct->IPAddress));
+        root["MacAddress"].SetString(pStruct->MacAddress, sizeof (pStruct->MacAddress));
         root["empty"] = false;
     } else {
         root["empty"] = true;
     }
-    Json::FastWriter writer;
-    auto msg_str = writer.write(root);
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspOrderInsert:" + ntos(nRequestID), msg_str);
-    logger->info("OnRspOrderInsert：%v", msg_str);
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspOrderInsert:" + ntos(nRequestID), sb.GetString());
+    logger->info("OnRspOrderInsert：%v", sb.GetString());
 }
 
 void CTraderSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pStruct, CThostFtdcRspInfoField *pRspInfo,
                                   int nRequestID, bool bIsLast) {
-    Json::Value root;
-    root["AppID"] = APPID;
+    rapidjson::Document root;
+    root["AppID"].SetString(APPID, root.GetAllocator());
     root["SessionID"] = SESSION_ID;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
@@ -607,37 +621,38 @@ void CTraderSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pStruct, CTho
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct) {
-        root["BrokerID"] = pStruct->BrokerID;
-        root["InvestorID"] = pStruct->InvestorID;
+        root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+        root["InvestorID"].SetString(pStruct->InvestorID, sizeof (pStruct->InvestorID));
         root["OrderActionRef"] = pStruct->OrderActionRef;
-        root["OrderRef"] = pStruct->OrderRef;
+        root["OrderRef"].SetString(pStruct->OrderRef, sizeof (pStruct->OrderRef));
         root["RequestID"] = pStruct->RequestID;
         root["FrontID"] = pStruct->FrontID;
         root["SessionID"] = pStruct->SessionID;
-        root["ExchangeID"] = pStruct->ExchangeID;
-        root["OrderSysID"] = pStruct->OrderSysID;
+        root["ExchangeID"].SetString(pStruct->ExchangeID, sizeof (pStruct->ExchangeID));
+        root["OrderSysID"].SetString(pStruct->OrderSysID, sizeof (pStruct->OrderSysID));
         root["ActionFlag"] = pStruct->ActionFlag;
         root["LimitPrice"] = pStruct->LimitPrice;
         root["VolumeChange"] = pStruct->VolumeChange;
-        root["UserID"] = pStruct->UserID;
-        root["InstrumentID"] = pStruct->InstrumentID;
-        root["InvestUnitID"] = pStruct->InvestUnitID;
-        root["IPAddress"] = pStruct->IPAddress;
-        root["MacAddress"] = pStruct->MacAddress;
+        root["UserID"].SetString(pStruct->UserID, sizeof (pStruct->UserID));
+        root["InstrumentID"].SetString(pStruct->InstrumentID, sizeof (pStruct->InstrumentID));
+        root["InvestUnitID"].SetString(pStruct->InvestUnitID, sizeof (pStruct->InvestUnitID));
+        root["IPAddress"].SetString(pStruct->IPAddress, sizeof (pStruct->IPAddress));
+        root["MacAddress"].SetString(pStruct->MacAddress, sizeof (pStruct->MacAddress));
         root["empty"] = false;
     } else {
         root["empty"] = true;
     }
-    Json::FastWriter writer;
-    auto msg_str = writer.write(root);
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspOrderAction:" + ntos(nRequestID), msg_str);
-    logger->info("OnRspOrderAction：%v", msg_str);
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspOrderAction:" + ntos(nRequestID), sb.GetString());
+    logger->info("OnRspOrderAction：%v", sb.GetString());
 }
 
 void CTraderSpi::OnRspQryOrder(CThostFtdcOrderField *pStruct, CThostFtdcRspInfoField *pRspInfo, int nRequestID,
                                bool bIsLast) {
-    Json::Value root;
-    root["AppID"] = APPID;
+    rapidjson::Document root;
+    root["AppID"].SetString(APPID, root.GetAllocator());
     root["SessionID"] = SESSION_ID;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
@@ -646,89 +661,90 @@ void CTraderSpi::OnRspQryOrder(CThostFtdcOrderField *pStruct, CThostFtdcRspInfoF
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct) {
-        root["InstrumentID"] = pStruct->InstrumentID;
-        root["BrokerID"] = pStruct->BrokerID;
-        root["InvestorID"] = pStruct->InvestorID;
-        root["OrderRef"] = pStruct->OrderRef;
-        root["UserID"] = pStruct->UserID;
+        root["InstrumentID"].SetString(pStruct->InstrumentID, sizeof (pStruct->InstrumentID));
+        root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+        root["InvestorID"].SetString(pStruct->InvestorID, sizeof (pStruct->InvestorID));
+        root["OrderRef"].SetString(pStruct->OrderRef, sizeof (pStruct->OrderRef));
+        root["UserID"].SetString(pStruct->UserID, sizeof (pStruct->UserID));
         root["OrderPriceType"] = pStruct->OrderPriceType;
         root["Direction"] = pStruct->Direction;
-        root["CombOffsetFlag"] = pStruct->CombOffsetFlag;
-        root["CombHedgeFlag"] = pStruct->CombHedgeFlag;
+        root["CombOffsetFlag"].SetString(pStruct->CombOffsetFlag, sizeof (pStruct->CombOffsetFlag));
+        root["CombHedgeFlag"].SetString(pStruct->CombHedgeFlag, sizeof (pStruct->CombHedgeFlag));
         root["LimitPrice"] = pStruct->LimitPrice;
         root["VolumeTotalOriginal"] = pStruct->VolumeTotalOriginal;
         root["TimeCondition"] = pStruct->TimeCondition;
-        root["GTDDate"] = pStruct->GTDDate;
+        root["GTDDate"].SetString(pStruct->GTDDate, sizeof (pStruct->GTDDate));
         root["VolumeCondition"] = pStruct->VolumeCondition;
         root["MinVolume"] = pStruct->MinVolume;
         root["ContingentCondition"] = pStruct->ContingentCondition;
         root["StopPrice"] = pStruct->StopPrice;
         root["ForceCloseReason"] = pStruct->ForceCloseReason;
         root["IsAutoSuspend"] = pStruct->IsAutoSuspend;
-        root["BusinessUnit"] = pStruct->BusinessUnit;
+        root["BusinessUnit"].SetString(pStruct->BusinessUnit, sizeof (pStruct->BusinessUnit));
         root["RequestID"] = pStruct->RequestID;
-        root["OrderLocalID"] = pStruct->OrderLocalID;
-        root["ExchangeID"] = pStruct->ExchangeID;
-        root["ParticipantID"] = pStruct->ParticipantID;
-        root["ClientID"] = pStruct->ClientID;
-        root["ExchangeInstID"] = pStruct->ExchangeInstID;
-        root["TraderID"] = pStruct->TraderID;
+        root["OrderLocalID"].SetString(pStruct->OrderLocalID, sizeof (pStruct->OrderLocalID));
+        root["ExchangeID"].SetString(pStruct->ExchangeID, sizeof (pStruct->ExchangeID));
+        root["ParticipantID"].SetString(pStruct->ParticipantID, sizeof (pStruct->ParticipantID));
+        root["ClientID"].SetString(pStruct->ClientID, sizeof (pStruct->ClientID));
+        root["ExchangeInstID"].SetString(pStruct->ExchangeInstID, sizeof (pStruct->ExchangeInstID));
+        root["TraderID"].SetString(pStruct->TraderID, sizeof (pStruct->TraderID));
         root["InstallID"] = pStruct->InstallID;
         root["OrderSubmitStatus"] = pStruct->OrderSubmitStatus;
         root["NotifySequence"] = pStruct->NotifySequence;
-        root["TradingDay"] = pStruct->TradingDay;
+        root["TradingDay"].SetString(pStruct->TradingDay, sizeof (pStruct->TradingDay));
         root["SettlementID"] = pStruct->SettlementID;
-        root["OrderSysID"] = pStruct->OrderSysID;
+        root["OrderSysID"].SetString(pStruct->OrderSysID, sizeof (pStruct->OrderSysID));
         root["OrderSource"] = pStruct->OrderSource;
         root["OrderStatus"] = pStruct->OrderStatus;
         root["OrderType"] = pStruct->OrderType;
         root["VolumeTraded"] = pStruct->VolumeTraded;
         root["VolumeTotal"] = pStruct->VolumeTotal;
-        root["InsertDate"] = pStruct->InsertDate;
-        root["InsertTime"] = pStruct->InsertTime;
-        root["ActiveTime"] = pStruct->ActiveTime;
-        root["SuspendTime"] = pStruct->SuspendTime;
-        root["UpdateTime"] = pStruct->UpdateTime;
-        root["CancelTime"] = pStruct->CancelTime;
-        root["ActiveTraderID"] = pStruct->ActiveTraderID;
-        root["ClearingPartID"] = pStruct->ClearingPartID;
+        root["InsertDate"].SetString(pStruct->InsertDate, sizeof (pStruct->InsertDate));
+        root["InsertTime"].SetString(pStruct->InsertTime, sizeof (pStruct->InsertTime));
+        root["ActiveTime"].SetString(pStruct->ActiveTime, sizeof (pStruct->ActiveTime));
+        root["SuspendTime"].SetString(pStruct->SuspendTime, sizeof (pStruct->SuspendTime));
+        root["UpdateTime"].SetString(pStruct->UpdateTime, sizeof (pStruct->UpdateTime));
+        root["CancelTime"].SetString(pStruct->CancelTime, sizeof (pStruct->CancelTime));
+        root["ActiveTraderID"].SetString(pStruct->ActiveTraderID, sizeof (pStruct->ActiveTraderID));
+        root["ClearingPartID"].SetString(pStruct->ClearingPartID, sizeof (pStruct->ClearingPartID));
         root["SequenceNo"] = pStruct->SequenceNo;
         root["FrontID"] = pStruct->FrontID;
         root["SessionID"] = pStruct->SessionID;
-        root["UserProductInfo"] = pStruct->UserProductInfo;
+        root["InsertDate"].SetString(pStruct->InsertDate, sizeof (pStruct->InsertDate));
+        root["UserProductInfo"].SetString(pStruct->UserProductInfo, sizeof (pStruct->UserProductInfo));
         char utf_str[512] = {0};
         gb2312toutf8(pStruct->StatusMsg, sizeof(pStruct->StatusMsg), utf_str, sizeof(utf_str));
-        root["StatusMsg"] = utf_str;
+        root["StatusMsg"].SetString(utf_str, sizeof (utf_str));
         root["UserForceClose"] = pStruct->UserForceClose;
-        root["ActiveUserID"] = pStruct->ActiveUserID;
+        root["ActiveUserID"].SetString(pStruct->ActiveUserID, sizeof (pStruct->ActiveUserID));
         root["BrokerOrderSeq"] = pStruct->BrokerOrderSeq;
-        root["RelativeOrderSysID"] = pStruct->RelativeOrderSysID;
+        root["RelativeOrderSysID"].SetString(pStruct->RelativeOrderSysID, sizeof (pStruct->RelativeOrderSysID));
         root["ZCETotalTradedVolume"] = pStruct->ZCETotalTradedVolume;
         root["IsSwapOrder"] = pStruct->IsSwapOrder;
-        root["BranchID"] = pStruct->BranchID;
-        root["InvestUnitID"] = pStruct->InvestUnitID;
-        root["AccountID"] = pStruct->AccountID;
-        root["CurrencyID"] = pStruct->CurrencyID;
-        root["IPAddress"] = pStruct->IPAddress;
-        root["MacAddress"] = pStruct->MacAddress;
+        root["BranchID"].SetString(pStruct->BranchID, sizeof (pStruct->BranchID));
+        root["InvestUnitID"].SetString(pStruct->InvestUnitID, sizeof (pStruct->InvestUnitID));
+        root["AccountID"].SetString(pStruct->AccountID, sizeof (pStruct->AccountID));
+        root["CurrencyID"].SetString(pStruct->CurrencyID, sizeof (pStruct->CurrencyID));
+        root["IPAddress"].SetString(pStruct->IPAddress, sizeof (pStruct->IPAddress));
+        root["MacAddress"].SetString(pStruct->MacAddress, sizeof (pStruct->MacAddress));
         root["empty"] = false;
     } else {
         root["empty"] = true;
     }
-    Json::FastWriter writer;
-    auto msg_str = writer.write(root);
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryOrder:" + ntos(nRequestID), msg_str);
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryOrder:" + ntos(nRequestID), sb.GetString());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
         check_cmd.notify_all();
     }
-//    logger->info("OnRspQryOrder：%v", msg_str);
 }
 
 void CTraderSpi::OnRspQryTrade(CThostFtdcTradeField *pStruct, CThostFtdcRspInfoField *pRspInfo, int nRequestID,
                                bool bIsLast) {
-    Json::Value root;
-    root["AppID"] = APPID;
+    rapidjson::Document root;
+    root["AppID"].SetString(APPID, root.GetAllocator());
     root["SessionID"] = SESSION_ID;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
@@ -737,33 +753,33 @@ void CTraderSpi::OnRspQryTrade(CThostFtdcTradeField *pStruct, CThostFtdcRspInfoF
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else if (pStruct) {
-        root["BrokerID"] = pStruct->BrokerID;
-        root["InvestorID"] = pStruct->InvestorID;
-        root["InstrumentID"] = pStruct->InstrumentID;
-        root["OrderRef"] = pStruct->OrderRef;
-        root["UserID"] = pStruct->UserID;
-        root["ExchangeID"] = pStruct->ExchangeID;
-        root["TradeID"] = pStruct->TradeID;
+        root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+        root["InvestorID"].SetString(pStruct->InvestorID, sizeof (pStruct->InvestorID));
+        root["InstrumentID"].SetString(pStruct->InstrumentID, sizeof (pStruct->InstrumentID));
+        root["OrderRef"].SetString(pStruct->OrderRef, sizeof (pStruct->OrderRef));
+        root["UserID"].SetString(pStruct->UserID, sizeof (pStruct->UserID));
+        root["ExchangeID"].SetString(pStruct->ExchangeID, sizeof (pStruct->ExchangeID));
+        root["TradeID"].SetString(pStruct->TradeID, sizeof (pStruct->TradeID));
         root["Direction"] = pStruct->Direction;
-        root["OrderSysID"] = pStruct->OrderSysID;
-        root["ParticipantID"] = pStruct->ParticipantID;
-        root["ClientID"] = pStruct->ClientID;
+        root["OrderSysID"].SetString(pStruct->OrderSysID, sizeof (pStruct->OrderSysID));
+        root["ParticipantID"].SetString(pStruct->ParticipantID, sizeof (pStruct->ParticipantID));
+        root["ClientID"].SetString(pStruct->ClientID, sizeof (pStruct->ClientID));
         root["TradingRole"] = pStruct->TradingRole;
-        root["ExchangeInstID"] = pStruct->ExchangeInstID;
+        root["ExchangeInstID"].SetString(pStruct->ExchangeInstID, sizeof (pStruct->ExchangeInstID));
         root["OffsetFlag"] = pStruct->OffsetFlag;
         root["HedgeFlag"] = pStruct->HedgeFlag;
         root["Price"] = pStruct->Price;
         root["Volume"] = pStruct->Volume;
-        root["TradeDate"] = pStruct->TradeDate;
-        root["TradeTime"] = pStruct->TradeTime;
+        root["TradeDate"].SetString(pStruct->TradeDate, sizeof (pStruct->TradeDate));
+        root["TradeTime"].SetString(pStruct->TradeTime, sizeof (pStruct->TradeTime));
         root["TradeType"] = pStruct->TradeType;
         root["PriceSource"] = pStruct->PriceSource;
-        root["TraderID"] = pStruct->TraderID;
-        root["OrderLocalID"] = pStruct->OrderLocalID;
-        root["ClearingPartID"] = pStruct->ClearingPartID;
-        root["BusinessUnit"] = pStruct->BusinessUnit;
+        root["TraderID"].SetString(pStruct->TraderID, sizeof (pStruct->TraderID));
+        root["OrderLocalID"].SetString(pStruct->OrderLocalID, sizeof (pStruct->OrderLocalID));
+        root["ClearingPartID"].SetString(pStruct->ClearingPartID, sizeof (pStruct->ClearingPartID));
+        root["BusinessUnit"].SetString(pStruct->BusinessUnit, sizeof (pStruct->BusinessUnit));
         root["SequenceNo"] = pStruct->SequenceNo;
-        root["TradingDay"] = pStruct->TradingDay;
+        root["TradingDay"].SetString(pStruct->TradingDay, sizeof (pStruct->TradingDay));
         root["SettlementID"] = pStruct->SettlementID;
         root["BrokerOrderSeq"] = pStruct->BrokerOrderSeq;
         root["TradeSource"] = pStruct->TradeSource;
@@ -771,8 +787,10 @@ void CTraderSpi::OnRspQryTrade(CThostFtdcTradeField *pStruct, CThostFtdcRspInfoF
     } else {
         root["empty"] = true;
     }
-    Json::FastWriter writer;
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryTrade:" + ntos(nRequestID), writer.write(root));
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspQryTrade:" + ntos(nRequestID), sb.GetString());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
         check_cmd.notify_all();
@@ -781,119 +799,121 @@ void CTraderSpi::OnRspQryTrade(CThostFtdcTradeField *pStruct, CThostFtdcRspInfoF
 
 ///报单通知
 void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pStruct) {
-    Json::Value root;
-    root["AppID"] = APPID;
+    rapidjson::Document root;
+    root["AppID"].SetString(APPID, root.GetAllocator());
     root["SessionID"] = SESSION_ID;
-    root["BrokerID"] = pStruct->BrokerID;
-    root["InvestorID"] = pStruct->InvestorID;
-    root["InstrumentID"] = pStruct->InstrumentID;
-    root["OrderRef"] = pStruct->OrderRef;
-    root["UserID"] = pStruct->UserID;
+    root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+    root["InvestorID"].SetString(pStruct->InvestorID, sizeof (pStruct->InvestorID));
+    root["InstrumentID"].SetString(pStruct->InstrumentID, sizeof (pStruct->InstrumentID));
+    root["OrderRef"].SetString(pStruct->OrderRef, sizeof (pStruct->OrderRef));
+    root["UserID"].SetString(pStruct->UserID, sizeof (pStruct->UserID));
     root["OrderPriceType"] = pStruct->OrderPriceType;
     root["Direction"] = pStruct->Direction;
-    root["CombOffsetFlag"] = pStruct->CombOffsetFlag;
-    root["CombHedgeFlag"] = pStruct->CombHedgeFlag;
+    root["CombOffsetFlag"].SetString(pStruct->CombOffsetFlag, sizeof (pStruct->CombOffsetFlag));
+    root["CombHedgeFlag"].SetString(pStruct->CombHedgeFlag, sizeof (pStruct->CombHedgeFlag));
     root["LimitPrice"] = pStruct->LimitPrice;
     root["VolumeTotalOriginal"] = pStruct->VolumeTotalOriginal;
     root["TimeCondition"] = pStruct->TimeCondition;
-    root["GTDDate"] = pStruct->GTDDate;
+    root["GTDDate"].SetString(pStruct->GTDDate, sizeof (pStruct->GTDDate));
     root["VolumeCondition"] = pStruct->VolumeCondition;
     root["MinVolume"] = pStruct->MinVolume;
     root["ContingentCondition"] = pStruct->ContingentCondition;
     root["StopPrice"] = pStruct->StopPrice;
     root["ForceCloseReason"] = pStruct->ForceCloseReason;
     root["IsAutoSuspend"] = pStruct->IsAutoSuspend;
-    root["BusinessUnit"] = pStruct->BusinessUnit;
+    root["BusinessUnit"].SetString(pStruct->BusinessUnit, sizeof (pStruct->BusinessUnit));
     root["RequestID"] = pStruct->RequestID;
-    root["OrderLocalID"] = pStruct->OrderLocalID;
-    root["ExchangeID"] = pStruct->ExchangeID;
-    root["ParticipantID"] = pStruct->ParticipantID;
-    root["ClientID"] = pStruct->ClientID;
-    root["ExchangeInstID"] = pStruct->ExchangeInstID;
-    root["TraderID"] = pStruct->TraderID;
+    root["OrderLocalID"].SetString(pStruct->OrderLocalID, sizeof (pStruct->OrderLocalID));
+    root["ExchangeID"].SetString(pStruct->ExchangeID, sizeof (pStruct->ExchangeID));
+    root["ParticipantID"].SetString(pStruct->ParticipantID, sizeof (pStruct->ParticipantID));
+    root["ClientID"].SetString(pStruct->ClientID, sizeof (pStruct->ClientID));
+    root["ExchangeInstID"].SetString(pStruct->ExchangeInstID, sizeof (pStruct->ExchangeInstID));
+    root["TraderID"].SetString(pStruct->TraderID, sizeof (pStruct->TraderID));
     root["InstallID"] = pStruct->InstallID;
     root["OrderSubmitStatus"] = pStruct->OrderSubmitStatus;
     root["NotifySequence"] = pStruct->NotifySequence;
-    root["TradingDay"] = pStruct->TradingDay;
+    root["TradingDay"].SetString(pStruct->TradingDay, sizeof (pStruct->TradingDay));
     root["SettlementID"] = pStruct->SettlementID;
-    root["OrderSysID"] = pStruct->OrderSysID;
+    root["OrderSysID"].SetString(pStruct->OrderSysID, sizeof (pStruct->OrderSysID));
     root["OrderSource"] = pStruct->OrderSource;
     root["OrderStatus"] = pStruct->OrderStatus;
     root["OrderType"] = pStruct->OrderType;
     root["VolumeTraded"] = pStruct->VolumeTraded;
     root["VolumeTotal"] = pStruct->VolumeTotal;
-    root["InsertDate"] = pStruct->InsertDate;
-    root["InsertTime"] = pStruct->InsertTime;
-    root["ActiveTime"] = pStruct->ActiveTime;
-    root["SuspendTime"] = pStruct->SuspendTime;
-    root["UpdateTime"] = pStruct->UpdateTime;
-    root["CancelTime"] = pStruct->CancelTime;
-    root["ActiveTraderID"] = pStruct->ActiveTraderID;
-    root["ClearingPartID"] = pStruct->ClearingPartID;
+    root["InsertDate"].SetString(pStruct->InsertDate, sizeof (pStruct->InsertDate));
+    root["InsertTime"].SetString(pStruct->InsertTime, sizeof (pStruct->InsertTime));
+    root["ActiveTime"].SetString(pStruct->ActiveTime, sizeof (pStruct->ActiveTime));
+    root["SuspendTime"].SetString(pStruct->SuspendTime, sizeof (pStruct->SuspendTime));
+    root["UpdateTime"].SetString(pStruct->UpdateTime, sizeof (pStruct->UpdateTime));
+    root["CancelTime"].SetString(pStruct->CancelTime, sizeof (pStruct->CancelTime));
+    root["ActiveTraderID"].SetString(pStruct->ActiveTraderID, sizeof (pStruct->ActiveTraderID));
+    root["ClearingPartID"].SetString(pStruct->ClearingPartID, sizeof (pStruct->ClearingPartID));
     root["SequenceNo"] = pStruct->SequenceNo;
     root["FrontID"] = pStruct->FrontID;
     root["SessionID"] = pStruct->SessionID;
-    root["UserProductInfo"] = pStruct->UserProductInfo;
+    root["UserProductInfo"].SetString(pStruct->UserProductInfo, sizeof (pStruct->UserProductInfo));
     char utf_str[512] = {0};
     gb2312toutf8(pStruct->StatusMsg, sizeof(pStruct->StatusMsg), utf_str, sizeof(utf_str));
-    root["StatusMsg"] = utf_str;
+    root["StatusMsg"].SetString(utf_str, sizeof (utf_str));
     root["UserForceClose"] = pStruct->UserForceClose;
-    root["ActiveUserID"] = pStruct->ActiveUserID;
+    root["ActiveUserID"].SetString(pStruct->ActiveUserID, sizeof (pStruct->ActiveUserID));
     root["BrokerOrderSeq"] = pStruct->BrokerOrderSeq;
-    root["RelativeOrderSysID"] = pStruct->RelativeOrderSysID;
+    root["RelativeOrderSysID"].SetString(pStruct->RelativeOrderSysID, sizeof (pStruct->RelativeOrderSysID));
     root["ZCETotalTradedVolume"] = pStruct->ZCETotalTradedVolume;
     root["IsSwapOrder"] = pStruct->IsSwapOrder;
-    root["BranchID"] = pStruct->BranchID;
-    root["InvestUnitID"] = pStruct->InvestUnitID;
-    root["AccountID"] = pStruct->AccountID;
-    root["CurrencyID"] = pStruct->CurrencyID;
-    root["IPAddress"] = pStruct->IPAddress;
-    root["MacAddress"] = pStruct->MacAddress;
-    Json::FastWriter writer;
-    auto msg_str = writer.write(root);
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRtnOrder:" + root["OrderRef"].asString(), msg_str);
-    logger->info("OnRtnOrder：%v", msg_str);
+    root["BranchID"].SetString(pStruct->BranchID, sizeof (pStruct->BranchID));
+    root["InvestUnitID"].SetString(pStruct->InvestUnitID, sizeof (pStruct->InvestUnitID));
+    root["AccountID"].SetString(pStruct->AccountID, sizeof (pStruct->AccountID));
+    root["CurrencyID"].SetString(pStruct->CurrencyID, sizeof (pStruct->CurrencyID));
+    root["IPAddress"].SetString(pStruct->IPAddress, sizeof (pStruct->IPAddress));
+    root["MacAddress"].SetString(pStruct->MacAddress, sizeof (pStruct->MacAddress));
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRtnOrder:" + root["OrderRef"].GetString(), sb.GetString());
+    logger->info("OnRtnOrder：%v", sb.GetString());
 }
 
 ///成交通知
 void CTraderSpi::OnRtnTrade(CThostFtdcTradeField *pStruct) {
-    Json::Value root;
-    root["AppID"] = APPID;
+    rapidjson::Document root;
+    root["AppID"].SetString(APPID, root.GetAllocator());
     root["SessionID"] = SESSION_ID;
-    root["BrokerID"] = pStruct->BrokerID;
-    root["InvestorID"] = pStruct->InvestorID;
-    root["InstrumentID"] = pStruct->InstrumentID;
-    root["OrderRef"] = pStruct->OrderRef;
-    root["UserID"] = pStruct->UserID;
-    root["ExchangeID"] = pStruct->ExchangeID;
-    root["TradeID"] = pStruct->TradeID;
+    root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
+    root["InvestorID"].SetString(pStruct->InvestorID, sizeof (pStruct->InvestorID));
+    root["InstrumentID"].SetString(pStruct->InstrumentID, sizeof (pStruct->InstrumentID));
+    root["OrderRef"].SetString(pStruct->OrderRef, sizeof (pStruct->OrderRef));
+    root["UserID"].SetString(pStruct->UserID, sizeof (pStruct->UserID));
+    root["ExchangeID"].SetString(pStruct->ExchangeID, sizeof (pStruct->ExchangeID));
+    root["TradeID"].SetString(pStruct->TradeID, sizeof (pStruct->TradeID));
     root["Direction"] = pStruct->Direction;
-    root["OrderSysID"] = pStruct->OrderSysID;
-    root["ParticipantID"] = pStruct->ParticipantID;
-    root["ClientID"] = pStruct->ClientID;
+    root["OrderSysID"].SetString(pStruct->OrderSysID, sizeof (pStruct->OrderSysID));
+    root["ParticipantID"].SetString(pStruct->ParticipantID, sizeof (pStruct->ParticipantID));
+    root["ClientID"].SetString(pStruct->ClientID, sizeof (pStruct->ClientID));
     root["TradingRole"] = pStruct->TradingRole;
-    root["ExchangeInstID"] = pStruct->ExchangeInstID;
+    root["ExchangeInstID"].SetString(pStruct->ExchangeInstID, sizeof (pStruct->ExchangeInstID));
     root["OffsetFlag"] = pStruct->OffsetFlag;
     root["HedgeFlag"] = pStruct->HedgeFlag;
     root["Price"] = pStruct->Price;
     root["Volume"] = pStruct->Volume;
-    root["TradeDate"] = pStruct->TradeDate;
-    root["TradeTime"] = pStruct->TradeTime;
+    root["TradeDate"].SetString(pStruct->TradeDate, sizeof (pStruct->TradeDate));
+    root["TradeTime"].SetString(pStruct->TradeTime, sizeof (pStruct->TradeTime));
     root["TradeType"] = pStruct->TradeType;
     root["PriceSource"] = pStruct->PriceSource;
-    root["TraderID"] = pStruct->TraderID;
-    root["OrderLocalID"] = pStruct->OrderLocalID;
-    root["ClearingPartID"] = pStruct->ClearingPartID;
-    root["BusinessUnit"] = pStruct->BusinessUnit;
+    root["TraderID"].SetString(pStruct->TraderID, sizeof (pStruct->TraderID));
+    root["OrderLocalID"].SetString(pStruct->OrderLocalID, sizeof (pStruct->OrderLocalID));
+    root["ClearingPartID"].SetString(pStruct->ClearingPartID, sizeof (pStruct->ClearingPartID));
+    root["BusinessUnit"].SetString(pStruct->BusinessUnit, sizeof (pStruct->BusinessUnit));
     root["SequenceNo"] = pStruct->SequenceNo;
-    root["TradingDay"] = pStruct->TradingDay;
+    root["TradingDay"].SetString(pStruct->TradingDay, sizeof (pStruct->TradingDay));
     root["SettlementID"] = pStruct->SettlementID;
     root["BrokerOrderSeq"] = pStruct->BrokerOrderSeq;
     root["TradeSource"] = pStruct->TradeSource;
-    Json::FastWriter writer;
-    auto msg_str = writer.write(root);
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRtnTrade:" + root["OrderRef"].asString(), msg_str);
-    logger->info("OnRtnTrade：%v", msg_str);
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRtnTrade:" + root["OrderRef"].GetString(), sb.GetString());
+    logger->info("OnRtnTrade：%v", sb.GetString());
 }
 
 void CTraderSpi::OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField *pStruct) {
@@ -901,18 +921,20 @@ void CTraderSpi::OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField *pStruct)
      * {"EnterReason":"1","EnterTime":"15:00:00","ExchangeID":"CFFEX","ExchangeInstID":"IF",
      * "InstrumentID":"IF","InstrumentStatus":"6","SettlementGroupID":"00000001","TradingSegmentSN":99}
      */
-    Json::Value root;
-    root["ExchangeID"] = pStruct->ExchangeID;
-    root["ExchangeInstID"] = pStruct->ExchangeInstID;
-    root["SettlementGroupID"] = pStruct->SettlementGroupID;
-    root["InstrumentID"] = pStruct->InstrumentID;
+    rapidjson::Document root;
+    root["ExchangeID"].SetString(pStruct->ExchangeID, sizeof (pStruct->ExchangeID));
+    root["ExchangeInstID"].SetString(pStruct->ExchangeInstID, sizeof (pStruct->ExchangeInstID));
+    root["SettlementGroupID"].SetString(pStruct->SettlementGroupID, sizeof (pStruct->SettlementGroupID));
+    root["InstrumentID"].SetString(pStruct->InstrumentID, sizeof (pStruct->InstrumentID));
     root["InstrumentStatus"] = pStruct->InstrumentStatus;
     root["TradingSegmentSN"] = pStruct->TradingSegmentSN;
-    root["EnterTime"] = pStruct->EnterTime;
+    root["EnterTime"].SetString(pStruct->EnterTime, sizeof (pStruct->EnterTime));
     root["EnterReason"] = pStruct->EnterReason;
-    Json::FastWriter writer;
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRtnInstrumentStatus:" + root["InstrumentID"].asString(),
-                      writer.write(root));
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRtnInstrumentStatus:" + root["InstrumentID"].GetString(), 
+                       sb.GetString());
 }
 
 void CTraderSpi::OnFrontDisconnected(int nReason) {
@@ -925,14 +947,15 @@ void CTraderSpi::OnHeartBeatWarning(int nTimeLapse) {
 }
 
 void CTraderSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-    Json::Value root;
+    rapidjson::Document root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = pRspInfo->ErrorID;
-    Json::FastWriter writer;
-    auto msg_str = writer.write(root);
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspError:" + ntos(nRequestID), msg_str);
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    root.Accept(writer);
+    publisher->publish(CHANNEL_TRADE_DATA + "OnRspError:" + ntos(nRequestID), sb.GetString());
     query_finished = true;
     check_cmd.notify_all();
-    logger->info("OnRspError：%v", msg_str);
+    logger->info("OnRspError：%v", sb.GetString());
 }

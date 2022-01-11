@@ -47,15 +47,10 @@ bool trade_login(false);
 bool market_login(false);
 std::condition_variable check_cmd;
 
-struct RequestCommand {
-    string cmd;
-    Json::Value arg;
-};
-
-queue<RequestCommand> cmd_queue; // NOLINT
+typedef std::unique_ptr<rapidjson::Document> dom_ptr;
+queue<dom_ptr> cmd_queue;
 std::mutex mut;
-
-map<string, std::function<int(const Json::Value &)> > req_func;
+map< string_view, std::function< int( rapidjson::Document&& ) > > req_func;
 
 #if defined(__linux__)
 int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destlen) {
@@ -71,12 +66,12 @@ int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destle
 }
 #elif defined(_WIN32)
 int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destlen) {
-    int len = MultiByteToWideChar(CP_ACP, 0, sourcebuf, -1, NULL, 0);
+    int len = MultiByteToWideChar(CP_ACP, 0, sourcebuf, -1, nullptr, 0);
     auto* wstr = new wchar_t[len+1];
     memset(wstr, 0, len+1);
     MultiByteToWideChar(CP_ACP, 0, sourcebuf, -1, wstr, len);
-    len = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL);
-    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, destbuf, len, NULL, NULL);
+    len = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
+    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, destbuf, len, nullptr, nullptr);
     delete[] wstr;
     return 0;
 }
@@ -88,222 +83,221 @@ std::string ntos(int n) {
     return newstr.str();
 }
 
-int IsMarketLogin(const Json::Value &root) {
+int IsMarketLogin(const rapidjson::Document &root) {
     publisher->publish(CHANNEL_MARKET_DATA + "IsMarketLogin", ntos(market_login));
     return 1;
 }
 
-int IsTradeLogin(const Json::Value &root) {
+int IsTradeLogin(const rapidjson::Document &root) {
     publisher->publish(CHANNEL_TRADE_DATA + "IsTradeLogin", ntos(trade_login));
     return 1;
 }
 
-int MarketReqUserLogin(const Json::Value &root) {
+int MarketReqUserLogin(const rapidjson::Document &root) {
     CThostFtdcReqUserLoginField req{};
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.UserID, INVESTOR_ID.c_str());
     strcpy(req.Password, PASSWORD.c_str());
-    iMarketRequestID = root["RequestID"].asInt();
+    iMarketRequestID = root["RequestID"].GetInt();
     return pMdApi->ReqUserLogin(&req, iMarketRequestID);
 }
 
-int SubscribeMarketData(const Json::Value &root) {
-    auto **charArray = new char *[root.size()];
-    for (unsigned int i = 0; i < root.size(); ++i) {
+int SubscribeMarketData(const rapidjson::Document &root) {
+    auto **charArray = new char *[root.Size()];
+    for (unsigned int i = 0; i < root.Size(); ++i) {
         charArray[i] = new char[32];
-        strcpy(charArray[i], root[i].asCString());
+        strcpy(charArray[i], root[i].GetString());
     }
-    logger->info("订阅合约数量: %v", root.size());
-    int iResult = pMdApi->SubscribeMarketData(charArray, (int)root.size());
-    for (unsigned int i = 0; i < root.size(); ++i)
+    logger->info("订阅合约数量: %v", root.Size());
+    int iResult = pMdApi->SubscribeMarketData(charArray, (int)root.Size());
+    for (unsigned int i = 0; i < root.Size(); ++i)
         delete charArray[i];
     delete[](charArray);
     return iResult;
 }
 
-int UnSubscribeMarketData(const Json::Value &root) {
-    auto **charArray = new char *[root.size()];
-    for (unsigned int i = 0; i < root.size(); ++i) {
+int UnSubscribeMarketData(const rapidjson::Document &root) {
+    auto **charArray = new char *[root.Size()];
+    for (unsigned int i = 0; i < root.Size(); ++i) {
         charArray[i] = new char[32];
-        strcpy(charArray[i], root[i].asCString());
+        strcpy(charArray[i], root[i].GetString());
     }
-    int iResult = pMdApi->UnSubscribeMarketData(charArray, (int)root.size());
-    for (unsigned int i = 0; i < root.size(); ++i)
+    int iResult = pMdApi->UnSubscribeMarketData(charArray, (int)root.Size());
+    for (unsigned int i = 0; i < root.Size(); ++i)
         delete charArray[i];
     delete[](charArray);
     return iResult;
 }
 
-int ReqSettlementInfoConfirm(const Json::Value &root) {
+int ReqSettlementInfoConfirm(const rapidjson::Document &root) {
     shared_ptr<CThostFtdcSettlementInfoConfirmField> req(new CThostFtdcSettlementInfoConfirmField);
     strcpy(req->BrokerID, BROKER_ID.c_str());
     strcpy(req->InvestorID, INVESTOR_ID.c_str());
-    pTraderApi->ReqSettlementInfoConfirm(req.get(), root["RequestID"].asInt());
-    return pTraderApi->ReqSettlementInfoConfirm(req.get(), root["RequestID"].asInt());
+    pTraderApi->ReqSettlementInfoConfirm(req.get(), root["RequestID"].GetInt());
+    return pTraderApi->ReqSettlementInfoConfirm(req.get(), root["RequestID"].GetInt());
 }
 
-int TradeReqUserLogin(const Json::Value &root) {
+int TradeReqUserLogin(const rapidjson::Document &root) {
     CThostFtdcReqUserLoginField req{};
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.UserID, INVESTOR_ID.c_str());
     strcpy(req.Password, PASSWORD.c_str());
-    iTradeRequestID = root["RequestID"].asInt();
+    iTradeRequestID = root["RequestID"].GetInt();
     return pTraderApi->ReqUserLogin(&req, iTradeRequestID);
 }
 
-int ReqOrderInsert(const Json::Value &root) {
+int ReqOrderInsert(const rapidjson::Document &root) {
     CThostFtdcInputOrderField req{};
-    strcpy(req.InstrumentID, root["InstrumentID"].asCString());
-    req.Direction = root["Direction"].asString()[0];
-    strcpy(req.OrderRef, root["OrderRef"].asCString());
-    if (root["LimitPrice"].isNull()) {
+    strcpy(req.InstrumentID, root["InstrumentID"].GetString());
+    req.Direction = root["Direction"].GetString()[0];
+    strcpy(req.OrderRef, root["OrderRef"].GetString());
+    if (root["LimitPrice"].IsNull()) {
         req.LimitPrice = 0;
     } else {
-        req.LimitPrice = root["LimitPrice"].asDouble();
+        req.LimitPrice = root["LimitPrice"].GetDouble();
     }
-    if (root["StopPrice"].isNull()) {
+    if (root["StopPrice"].IsNull()) {
         req.StopPrice = 0;
     } else {
-        req.StopPrice = root["StopPrice"].asDouble();
+        req.StopPrice = root["StopPrice"].GetDouble();
     }
-    req.VolumeTotalOriginal = root["VolumeTotalOriginal"].asInt();
+    req.VolumeTotalOriginal = root["VolumeTotalOriginal"].GetInt();
     req.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    req.CombOffsetFlag[0] = root["CombOffsetFlag"].asString()[0];
+    req.CombOffsetFlag[0] = root["CombOffsetFlag"].GetString()[0];
     req.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
     req.VolumeCondition = THOST_FTDC_VC_AV;
     req.MinVolume = 1;
     req.ForceCloseReason = THOST_FTDC_FCC_NotForceClose;
-    req.ContingentCondition = root["ContingentCondition"].asString()[0];
+    req.ContingentCondition = root["ContingentCondition"].GetString()[0];
     req.IsAutoSuspend = 1;
     req.UserForceClose = 0;
-    req.TimeCondition = root["TimeCondition"].asString()[0];
+    req.TimeCondition = root["TimeCondition"].GetString()[0];
     strcpy(req.IPAddress, IP_ADDRESS.c_str());
     strcpy(req.MacAddress, MAC_ADDRESS.c_str());
-    iTradeRequestID = root["RequestID"].asInt();
+    iTradeRequestID = root["RequestID"].GetInt();
     return pTraderApi->ReqOrderInsert(&req, iTradeRequestID);
 }
 
-int ReqOrderAction(const Json::Value &root) {
+int ReqOrderAction(const rapidjson::Document &root) {
     CThostFtdcInputOrderActionField req{};
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-//    strcpy(req.OrderRef, root["OrderRef"].asCString());
-    strcpy(req.ExchangeID, root["ExchangeID"].asCString());
-    strcpy(req.UserID, root["UserID"].asCString());
-    strcpy(req.InstrumentID, root["InstrumentID"].asCString());
-    req.OrderActionRef = root["RequestID"].asInt() + 1;
+//    strcpy(req.OrderRef, root["OrderRef"].GetString());
+    strcpy(req.ExchangeID, root["ExchangeID"].GetString());
+    strcpy(req.UserID, root["UserID"].GetString());
+    strcpy(req.InstrumentID, root["InstrumentID"].GetString());
+    req.OrderActionRef = root["RequestID"].GetInt() + 1;
 //    req.FrontID = FRONT_ID;
 //    req.SessionID = SESSION_ID;
     req.ActionFlag = THOST_FTDC_AF_Delete;
     strcpy(req.IPAddress, IP_ADDRESS.c_str());
     strcpy(req.MacAddress, MAC_ADDRESS.c_str());
-    strcpy(req.OrderSysID, root["OrderSysID"].asCString());
-    iTradeRequestID = root["RequestID"].asInt();
+    strcpy(req.OrderSysID, root["OrderSysID"].GetString());
+    iTradeRequestID = root["RequestID"].GetInt();
     return pTraderApi->ReqOrderAction(&req, iTradeRequestID);
 }
 
-int ReqQrySettlementInfo(const Json::Value &root) {
+int ReqQrySettlementInfo(const rapidjson::Document &root) {
     CThostFtdcQrySettlementInfoField req{};
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    iTradeRequestID = root["RequestID"].asInt();
+    iTradeRequestID = root["RequestID"].GetInt();
     return pTraderApi->ReqQrySettlementInfo(&req, iTradeRequestID);
 }
 
-int ReqQryInstrument(const Json::Value &root) {
+int ReqQryInstrument(const rapidjson::Document &root) {
     CThostFtdcQryInstrumentField req{};
-    if (!root["InstrumentID"].isNull()) {
-        strcpy(req.InstrumentID, root["InstrumentID"].asCString());
+    if (!root["InstrumentID"].IsNull()) {
+        strcpy(req.InstrumentID, root["InstrumentID"].GetString());
     }
-    if (!root["ExchangeID"].isNull()) {
-        strcpy(req.ExchangeID, root["ExchangeID"].asCString());
+    if (!root["ExchangeID"].IsNull()) {
+        strcpy(req.ExchangeID, root["ExchangeID"].GetString());
     }
-    iTradeRequestID = root["RequestID"].asInt();
+    iTradeRequestID = root["RequestID"].GetInt();
     return pTraderApi->ReqQryInstrument(&req, iTradeRequestID);
 }
 
-int ReqQryInstrumentCommissionRate(const Json::Value &root) {
+int ReqQryInstrumentCommissionRate(const rapidjson::Document &root) {
     CThostFtdcQryInstrumentCommissionRateField req{};
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if (!root["InstrumentID"].isNull()) {
-        strcpy(req.InstrumentID, root["InstrumentID"].asCString());
+    if (!root["InstrumentID"].IsNull()) {
+        strcpy(req.InstrumentID, root["InstrumentID"].GetString());
     }
-    iTradeRequestID = root["RequestID"].asInt();
+    iTradeRequestID = root["RequestID"].GetInt();
     return pTraderApi->ReqQryInstrumentCommissionRate(&req, iTradeRequestID);
 }
 
-int ReqQryInstrumentMarginRate(const Json::Value &root) {
+int ReqQryInstrumentMarginRate(const rapidjson::Document &root) {
     CThostFtdcQryInstrumentMarginRateField req{};
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if (!root["InstrumentID"].isNull()) {
-        strcpy(req.InstrumentID, root["InstrumentID"].asCString());
+    if (!root["InstrumentID"].IsNull()) {
+        strcpy(req.InstrumentID, root["InstrumentID"].GetString());
     }
-    iTradeRequestID = root["RequestID"].asInt();
+    iTradeRequestID = root["RequestID"].GetInt();
     return pTraderApi->ReqQryInstrumentMarginRate(&req, iTradeRequestID);
 }
 
-int ReqQryTradingAccount(const Json::Value &root) {
+int ReqQryTradingAccount(const rapidjson::Document &root) {
     CThostFtdcQryTradingAccountField req{};
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    iTradeRequestID = root["RequestID"].asInt();
+    iTradeRequestID = root["RequestID"].GetInt();
     return pTraderApi->ReqQryTradingAccount(&req, iTradeRequestID);
 }
 
-int ReqQryInvestorPosition(const Json::Value &root) {
+int ReqQryInvestorPosition(const rapidjson::Document &root) {
     CThostFtdcQryInvestorPositionField req{};
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if (!root["InstrumentID"].isNull()) {
-        strcpy(req.InstrumentID, root["InstrumentID"].asCString());
+    if (!root["InstrumentID"].IsNull()) {
+        strcpy(req.InstrumentID, root["InstrumentID"].GetString());
     }
-    iTradeRequestID = root["RequestID"].asInt();
+    iTradeRequestID = root["RequestID"].GetInt();
     return pTraderApi->ReqQryInvestorPosition(&req, iTradeRequestID);
 }
 
-int ReqQryInvestorPositionDetail(const Json::Value &root) {
+int ReqQryInvestorPositionDetail(const rapidjson::Document &root) {
     CThostFtdcQryInvestorPositionDetailField req{};
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if (!root["InstrumentID"].isNull()) {
-        strcpy(req.InstrumentID, root["InstrumentID"].asCString());
+    if (!root["InstrumentID"].IsNull()) {
+        strcpy(req.InstrumentID, root["InstrumentID"].GetString());
     }
-    iTradeRequestID = root["RequestID"].asInt();
+    iTradeRequestID = root["RequestID"].GetInt();
     return pTraderApi->ReqQryInvestorPositionDetail(&req, iTradeRequestID);
 }
 
-int ReqQryOrder(const Json::Value &root) {
+int ReqQryOrder(const rapidjson::Document &root) {
     CThostFtdcQryOrderField req{};
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    iTradeRequestID = root["RequestID"].asInt();
+    iTradeRequestID = root["RequestID"].GetInt();
     return pTraderApi->ReqQryOrder(&req, iTradeRequestID);
 }
 
-int ReqQryTrade(const Json::Value &root) {
+int ReqQryTrade(const rapidjson::Document &root) {
     CThostFtdcQryTradeField req{};
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    strcpy(req.InstrumentID, root["InstrumentID"].asCString());
-    strcpy(req.TradeID, root["TradeID"].asCString());
-    iTradeRequestID = root["RequestID"].asInt();
+    strcpy(req.InstrumentID, root["InstrumentID"].GetString());
+    strcpy(req.TradeID, root["TradeID"].GetString());
+    iTradeRequestID = root["RequestID"].GetInt();
     return pTraderApi->ReqQryTrade(&req, iTradeRequestID);
 }
 
 void handle_req_request(std::string pattern, std::string channel, std::string msg) {
     auto request_type = channel.substr(channel.find_last_of(':') + 1);
-    Json::Reader reader;
-    Json::Value root;
-    reader.parse(msg, root);
     std::lock_guard<std::mutex> lk(mut);
-    RequestCommand rc;
-    rc.cmd = request_type;
-    rc.arg = root;
-    cmd_queue.push(rc);
+    dom_ptr domRoot(new rapidjson::Document());
+    rapidjson::Document domMsg(&domRoot->GetAllocator());
+    domMsg.Parse(msg);
+    domRoot->AddMember("request", request_type, domRoot->GetAllocator());
+    domRoot->AddMember("param", domMsg, domRoot->GetAllocator());
+    cmd_queue.push(std::move(domRoot));
     if ( request_type.find_first_of("Subscribe") != std::string::npos )
         logger->info("queue_size: %v, cmd: %v", cmd_queue.size(), request_type);
     else
@@ -343,7 +337,8 @@ void handle_command() {
                 if ( cmd_queue.empty() )
                     return false;
                 // 新命令是交易类命令， 直接执行
-                if ( cmd_queue.front().cmd.find_first_of("ReqQry") == std::string::npos )
+                std::string_view strReq(cmd_queue.front()->operator[]("request").GetString());
+                if ( strReq.find_first_of("ReqQry") == std::string::npos )
                     return true;
                 // 上一次的查询命令执行完毕，可以执行新查询
                 if ( query_finished )
@@ -353,38 +348,44 @@ void handle_command() {
             });
             if ( ! wait_rst ) continue;
         }
-        RequestCommand cmd = cmd_queue.front();
+        dom_ptr pDom = std::move( cmd_queue.front() );
         cmd_queue.pop();
-        auto func = req_func.find(cmd.cmd);
+        rapidjson::Document& domRoot = *pDom;
+        std::string_view strReq( domRoot["request"].GetString() );
+        auto func = req_func.find(strReq);
         if ( func == req_func.end() ) {
-            logger->error("can't find req_func=%v", cmd.cmd);
+            logger->error("can't find req_func=%v", strReq);
             continue;
         }
         // 查询类接口调用频率限制为1秒一次
-        if ( cmd.cmd.find_first_of("ReqQry") != std::string::npos ) {
+        if ( strReq.find_first_of("ReqQry") != std::string::npos ) {
             std::this_thread::sleep_until(start + std::chrono::milliseconds(1000));
             start = std::chrono::high_resolution_clock::now();
             query_finished = false;
         } else {
             query_finished = true;
         }
-        if ( cmd.cmd.find_first_of("Subscribe") != std::string::npos )
-            logger->info("发送命令 %v", cmd.cmd);
+        if ( strReq.find_first_of("Subscribe") != std::string::npos )
+            logger->info("发送命令 %v", strReq);
         else
-            logger->info("发送命令 %v : %v", cmd.cmd, cmd.arg);
-        int iResult = (func->second)(cmd.arg);
-        Json::Value err = "发送成功";
+            logger->info("发送命令 %v : %v", strReq, domRoot["param"].GetString());
+        std::string reqID;
+        if ( domRoot["param"].HasMember("RequestID") )
+            reqID = domRoot["param"]["RequestID"].GetString();
+        int iResult = (func->second)( std::move( domRoot ) );
+        rapidjson::Value err("发送成功");
         if ( iResult == -1 )
-            err = "因网络原因发送失败";
+            err.SetString("因网络原因发送失败");
         else if ( iResult == -2 )
-            err = "未处理请求队列总数量超限";
+            err.SetString("未处理请求队列总数量超限");
         else if ( iResult == -3 )
-            err = "每秒发送请求数量超限";
-        logger->info("结果: %v", err);
+            err.SetString("每秒发送请求数量超限");
+        logger->info("结果: %v", err.GetString());
         if ( iResult ) {
-            Json::FastWriter writer;
-            publisher->publish(CHANNEL_MARKET_DATA + "OnRspError:" + cmd.arg["RequestID"].asString(),
-                              writer.write(err));
+            rapidjson::StringBuffer sb;
+            rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+            err.Accept(writer);
+            publisher->publish(CHANNEL_MARKET_DATA + "OnRspError:" + reqID, sb.GetString());
         }
     }
     logger->info("监听线程已退出.");

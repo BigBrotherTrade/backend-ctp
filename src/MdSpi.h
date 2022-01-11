@@ -16,7 +16,6 @@
 #pragma once
 
 #include "ThostFtdcMdApi.h"
-#include "json.h"
 
 class CMdSpi : public CThostFtdcMdSpi {
 public:
@@ -53,5 +52,5 @@ public:
                                       CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
 
     ///深度行情通知
-    virtual void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData);
+    virtual void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pStruct);
 };
