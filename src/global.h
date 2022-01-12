@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 #pragma once
-
 #include <cstring>
 #include <sw/redis++/redis++.h>
 #include <ThostFtdcTraderApi.h>
 #include <ThostFtdcMdApi.h>
-#include "rapidjson/document.h"
-#include "rapidjson/writer.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/pointer.h"
+#define JSON_HAS_CPP_17 1
+#include "json.hpp"
 #include "easylogging++.h"
 
 static const std::string CHANNEL_REQ_PATTERN = "MSG:CTP:REQ:*"; // 监听req命令

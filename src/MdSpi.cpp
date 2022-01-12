@@ -17,17 +17,15 @@
 #include "global.h"
 
 using namespace std;
+using json = nlohmann::json;
 
 void CMdSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo,
                         int nRequestID, bool bIsLast) {
-    rapidjson::Document root;
+    json root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = pRspInfo->ErrorID;
-    rapidjson::StringBuffer sb;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
-    root.Accept(writer);
-    publisher->publish(CHANNEL_MARKET_DATA + "OnRspError:" + ntos(nRequestID), sb.GetString());
+    publisher->publish(CHANNEL_MARKET_DATA + "OnRspError:" + ntos(nRequestID), root.dump());
 }
 
 void CMdSpi::OnFrontDisconnected(int nReason) {
@@ -51,9 +49,9 @@ void CMdSpi::OnFrontConnected() {
     logger->info("行情前置已连接！发送行情登录请求..");
 }
 
-void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
+void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
                             CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-    rapidjson::Document root;
+    json root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
@@ -61,98 +59,86 @@ void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else {
-        root["TradingDay"].SetString(pStruct->TradingDay, sizeof (pStruct->TradingDay));
-        root["LoginTime"].SetString(pStruct->LoginTime, sizeof (pStruct->LoginTime));
-        root["BrokerID"].SetString(pStruct->BrokerID, sizeof (pStruct->BrokerID));
-        root["UserID"].SetString(pStruct->UserID, sizeof (pStruct->UserID));
-        root["SystemName"].SetString(pStruct->SystemName, sizeof (pStruct->SystemName));
-        root["FrontID"] = pStruct->FrontID;
-        root["SessionID"] = pStruct->SessionID;
-        root["MaxOrderRef"].SetString(pStruct->MaxOrderRef, sizeof (pStruct->MaxOrderRef));
-        root["SHFETime"].SetString(pStruct->SHFETime, sizeof (pStruct->SHFETime));
-        root["DCETime"].SetString(pStruct->DCETime, sizeof (pStruct->DCETime));
-        root["CZCETime"].SetString(pStruct->CZCETime, sizeof (pStruct->CZCETime));
-        root["FFEXTime"].SetString(pStruct->FFEXTime, sizeof (pStruct->FFEXTime));
-        root["INETime"].SetString(pStruct->INETime, sizeof (pStruct->INETime));
+        root["TradingDay"] = pRspUserLogin->TradingDay;
+        root["LoginTime"] = pRspUserLogin->LoginTime;
+        root["BrokerID"] = pRspUserLogin->BrokerID;
+        root["UserID"] = pRspUserLogin->UserID;
+        root["SystemName"] = pRspUserLogin->SystemName;
+        root["FrontID"] = pRspUserLogin->FrontID;
+        root["SessionID"] = pRspUserLogin->SessionID;
+        root["MaxOrderRef"] = pRspUserLogin->MaxOrderRef;
+        root["SHFETime"] = pRspUserLogin->SHFETime;
+        root["DCETime"] = pRspUserLogin->DCETime;
+        root["CZCETime"] = pRspUserLogin->CZCETime;
+        root["FFEXTime"] = pRspUserLogin->FFEXTime;
+        root["INETime"] = pRspUserLogin->INETime;
         market_login = true;
     }
-    rapidjson::StringBuffer sb;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
-    root.Accept(writer);
-    publisher->publish(CHANNEL_MARKET_DATA + "OnRspUserLogin:" + ntos(nRequestID), sb.GetString());
-    logger->info("行情登录成功！交易日：%v", pStruct->TradingDay);
+    publisher->publish(CHANNEL_MARKET_DATA + "OnRspUserLogin:" + ntos(nRequestID), root.dump());
+    logger->info("行情登录成功！交易日：%v", pRspUserLogin->TradingDay);
 }
 
-void CMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pStruct,
+void CMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument,
                                 CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-    rapidjson::Document root;
+    json root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else {
-        root["InstrumentID"].SetString(pStruct->InstrumentID, sizeof (pStruct->InstrumentID));
+        root["InstrumentID"] = pSpecificInstrument->InstrumentID;
     }
-    rapidjson::StringBuffer sb;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
-    root.Accept(writer);
-    publisher->publish(CHANNEL_MARKET_DATA + "OnRspSubMarketData:" + ntos(nRequestID), sb.GetString());
+    publisher->publish(CHANNEL_MARKET_DATA + "OnRspSubMarketData:" + ntos(nRequestID), root.dump());
 }
 
-void CMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pStruct,
+void CMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument,
                                   CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-    rapidjson::Document root;
+    json root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = 0;
     if (pRspInfo && pRspInfo->ErrorID != 0) {
         root["ErrorID"] = pRspInfo->ErrorID;
     } else {
-        root["InstrumentID"].SetString(pStruct->InstrumentID, sizeof (pStruct->InstrumentID));
+        root["InstrumentID"] = pSpecificInstrument->InstrumentID;
     }
-    rapidjson::StringBuffer sb;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
-    root.Accept(writer);
-    publisher->publish(CHANNEL_MARKET_DATA + "OnRspUnSubMarketData:" + ntos(nRequestID), sb.GetString());
+    publisher->publish(CHANNEL_MARKET_DATA + "OnRspUnSubMarketData:" + ntos(nRequestID), root.dump());
 }
 
-void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pStruct) {
-    rapidjson::Document root;
-    root["TradingDay"].SetString(pStruct->TradingDay, sizeof (pStruct->TradingDay));
-    root["InstrumentID"].SetString(pStruct->InstrumentID, sizeof (pStruct->InstrumentID));
-//    root["ExchangeID"] = pStruct->ExchangeID;
-//    root["ExchangeInstID"] = pStruct->ExchangeInstID;
-    root["LastPrice"] = pStruct->LastPrice;
-    root["PreSettlementPrice"] = pStruct->PreSettlementPrice;
-    root["PreClosePrice"] = pStruct->PreClosePrice;
-    root["PreOpenInterest"] = pStruct->PreOpenInterest;
-    root["OpenPrice"] = pStruct->OpenPrice;
-    root["HighestPrice"] = pStruct->HighestPrice;
-    root["LowestPrice"] = pStruct->LowestPrice;
-    root["Volume"] = pStruct->Volume;
-    root["Turnover"] = pStruct->Turnover;
-    root["OpenInterest"] = pStruct->OpenInterest;
-    root["ClosePrice"] = pStruct->ClosePrice;
-    root["SettlementPrice"] = pStruct->SettlementPrice;
-    root["UpperLimitPrice"] = pStruct->UpperLimitPrice;
-    root["LowerLimitPrice"] = pStruct->LowerLimitPrice;
-//    root["PreDelta"] = pStruct->PreDelta;
-//    root["CurrDelta"] = pStruct->CurrDelta;
-    root["UpdateMillisec"] = pStruct->UpdateMillisec;
-    root["BidPrice1"] = pStruct->BidPrice1;
-    root["BidVolume1"] = pStruct->BidVolume1;
-    root["AskPrice1"] = pStruct->AskPrice1;
-    root["AskVolume1"] = pStruct->AskVolume1;
-    root["AveragePrice"] = pStruct->AveragePrice;
-    root["ActionDay"].SetString(pStruct->ActionDay, sizeof (pStruct->ActionDay));
+void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pData) {
+    json root;
+    root["TradingDay"] = pData->TradingDay;
+    root["InstrumentID"] = pData->InstrumentID;
+//    root["ExchangeID"] = pData->ExchangeID;
+//    root["ExchangeInstID"] = pData->ExchangeInstID;
+    root["LastPrice"] = pData->LastPrice;
+    root["PreSettlementPrice"] = pData->PreSettlementPrice;
+    root["PreClosePrice"] = pData->PreClosePrice;
+    root["PreOpenInterest"] = pData->PreOpenInterest;
+    root["OpenPrice"] = pData->OpenPrice;
+    root["HighestPrice"] = pData->HighestPrice;
+    root["LowestPrice"] = pData->LowestPrice;
+    root["Volume"] = pData->Volume;
+    root["Turnover"] = pData->Turnover;
+    root["OpenInterest"] = pData->OpenInterest;
+    root["ClosePrice"] = pData->ClosePrice;
+    root["SettlementPrice"] = pData->SettlementPrice;
+    root["UpperLimitPrice"] = pData->UpperLimitPrice;
+    root["LowerLimitPrice"] = pData->LowerLimitPrice;
+//    root["PreDelta"] = pData->PreDelta;
+//    root["CurrDelta"] = pData->CurrDelta;
+    root["UpdateMillisec"] = pData->UpdateMillisec;
+    root["BidPrice1"] = pData->BidPrice1;
+    root["BidVolume1"] = pData->BidVolume1;
+    root["AskPrice1"] = pData->AskPrice1;
+    root["AskVolume1"] = pData->AskVolume1;
+    root["AveragePrice"] = pData->AveragePrice;
+    root["ActionDay"] = pData->ActionDay;
     char time_str[32] = {0};
-    sprintf(time_str, "%s %s:%d", pStruct->ActionDay, pStruct->UpdateTime, pStruct->UpdateMillisec * 1000);
-    root["UpdateTime"].SetString(time_str, sizeof (time_str));
-    rapidjson::StringBuffer sb;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
-    root.Accept(writer);
-    auto data_str = sb.GetString();
-    publisher->publish(CHANNEL_MARKET_DATA + "OnRtnDepthMarketData:" + root["InstrumentID"].GetString(), data_str);
-    publisher->set(HASHSET_TICK + root["InstrumentID"].GetString(), data_str);
+    sprintf(time_str, "%s %s:%d", pData->ActionDay, pData->UpdateTime, pData->UpdateMillisec * 1000);
+    root["UpdateTime"] = string(time_str);
+    auto data_str = root.dump();
+    publisher->publish(CHANNEL_MARKET_DATA + "OnRtnDepthMarketData:" + root["InstrumentID"].get<string>(), data_str);
+    publisher->set("TICK:" + root["InstrumentID"].get<string>(), data_str);
 }

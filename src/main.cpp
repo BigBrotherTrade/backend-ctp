@@ -22,7 +22,6 @@
 #include <unistd.h>
 #elif defined(_WIN32)
 #include <filesystem>
-#include <windows.h>
 #endif
 INITIALIZE_EASYLOGGINGPP // NOLINT
 
@@ -109,14 +108,14 @@ int main(int argc, char **argv) {
         logger->info("当前时间：%v-%v-%v %v:%v:%v 连接离线查询网关",
                      tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     }
-//    logger->info("连接行情服务器..");
-//    pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( md_path.c_str() );      // 创建MdApi
-//    CThostFtdcMdSpi *pMdSpi = new CMdSpi();
-//    pMdApi->RegisterSpi(pMdSpi);                                       // 注册事件类
-//    if ( now >= 845 && now <= 1520 || now >= 2045 && now <= 2359 )
-//        pMdApi->RegisterFront( (char *) config["market"].c_str() );        // connect
-//    else
-//        pMdApi->RegisterFront( (char *) config["market_off"].c_str() );    // connect
+    logger->info("连接行情服务器..");
+    pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( md_path.c_str() );      // 创建MdApi
+    CThostFtdcMdSpi *pMdSpi = new CMdSpi();
+    pMdApi->RegisterSpi(pMdSpi);                                       // 注册事件类
+    if ( now >= 845 && now <= 1520 || now >= 2045 && now <= 2359 )
+        pMdApi->RegisterFront( (char *) config["market"].c_str() );        // connect
+    else
+        pMdApi->RegisterFront( (char *) config["market_off"].c_str() );    // connect
 
     logger->info("开启命令处理线程..");
     std::thread command_handler(handle_command);
@@ -124,7 +123,7 @@ int main(int argc, char **argv) {
     subscriber.on_pmessage(handle_req_request);
 
     pTraderApi->Init();
-//    pMdApi->Init();
+    pMdApi->Init();
 
     std::thread([connection_options] {
         Redis beater = Redis(connection_options);
@@ -139,7 +138,7 @@ int main(int argc, char **argv) {
     }).detach();
     logger->info("服务已启动.");
     pTraderApi->Join();
-//    pMdApi->Join();
+    pMdApi->Join();
     keep_running = false;
     command_handler.join();
     logger->info("服务已退出.");
