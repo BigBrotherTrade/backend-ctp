@@ -18,5 +18,5 @@ jobs:
         src_account_type: org
         dst_account_type: user
         mappings: "dashboard=>dashboards"
-        static_list: "dashboard,backend-ctp,trader"
+        static_list: "backend-ctp"
         cache_path: /github/workspace/hub-mirror-cache
