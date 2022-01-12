@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
     pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( md_path.c_str() );      // 创建MdApi
     CThostFtdcMdSpi *pMdSpi = new CMdSpi();
     pMdApi->RegisterSpi(pMdSpi);                                       // 注册事件类
-    if ( now >= 845 && now <= 1520 || now >= 2045 && now <= 2359 )
+    if ( (now >= 845 && now <= 1520) || (now >= 2045 && now <= 2359) )
         pMdApi->RegisterFront( (char *) config["market"].c_str() );        // connect
     else
         pMdApi->RegisterFront( (char *) config["market_off"].c_str() );    // connect

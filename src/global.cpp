@@ -209,10 +209,10 @@ int ReqQrySettlementInfo(const json &root) {
 
 int ReqQryInstrument(const json &root) {
     CThostFtdcQryInstrumentField req{};
-    if (!root["InstrumentID"].is_null()) {
+    if ( root.contains("InstrumentID") ) {
         strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
     }
-    if (!root["ExchangeID"].is_null()) {
+    if ( root.contains("ExchangeID") ) {
         strcpy(req.ExchangeID, root["ExchangeID"].get<string>().c_str());
     }
     iTradeRequestID = root["RequestID"].get<int>();
@@ -223,7 +223,7 @@ int ReqQryInstrumentCommissionRate(const json &root) {
     CThostFtdcQryInstrumentCommissionRateField req{};
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if (!root["InstrumentID"].is_null()) {
+    if ( root.contains("InstrumentID") ) {
         strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
     }
     iTradeRequestID = root["RequestID"].get<int>();
@@ -234,7 +234,7 @@ int ReqQryInstrumentMarginRate(const json &root) {
     CThostFtdcQryInstrumentMarginRateField req{};
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if (!root["InstrumentID"].is_null()) {
+    if ( root.contains("InstrumentID") ) {
         strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
     }
     iTradeRequestID = root["RequestID"].get<int>();
@@ -253,7 +253,7 @@ int ReqQryInvestorPosition(const json &root) {
     CThostFtdcQryInvestorPositionField req{};
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if (!root["InstrumentID"].is_null()) {
+    if ( root.contains("InstrumentID") ) {
         strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
     }
     iTradeRequestID = root["RequestID"].get<int>();
@@ -264,7 +264,7 @@ int ReqQryInvestorPositionDetail(const json &root) {
     CThostFtdcQryInvestorPositionDetailField req{};
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if (!root["InstrumentID"].is_null()) {
+    if ( root.contains("InstrumentID") ) {
         strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
     }
     iTradeRequestID = root["RequestID"].get<int>();
