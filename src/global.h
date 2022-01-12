@@ -22,6 +22,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
+#include "rapidjson/pointer.h"
 #include "easylogging++.h"
 
 static const std::string CHANNEL_REQ_PATTERN = "MSG:CTP:REQ:*"; // 监听req命令
