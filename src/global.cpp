@@ -148,36 +148,42 @@ int TradeReqUserLogin(const json &root) {
 
 int ReqOrderInsert(const json &root) {
     CThostFtdcInputOrderField req{};
-    strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
-    req.Direction = root["Direction"].get<char>();
-    strcpy(req.OrderRef, root["OrderRef"].get<string>().c_str());
-    if (root["LimitPrice"].is_null()) {
-        req.LimitPrice = 0;
-    } else {
-        req.LimitPrice = root["LimitPrice"].get<double>();
+    try {
+        strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
+        req.Direction = root["Direction"].get<string>()[0];
+        strcpy(req.OrderRef, root["OrderRef"].get<string>().c_str());
+        if (root["LimitPrice"].is_null()) {
+            req.LimitPrice = 0;
+        } else {
+            req.LimitPrice = root["LimitPrice"].get<double>();
+        }
+        if (root["StopPrice"].is_null()) {
+            req.StopPrice = 0;
+        } else {
+            req.StopPrice = root["StopPrice"].get<double>();
+        }
+        req.VolumeTotalOriginal = root["VolumeTotalOriginal"].get<int>();
+        req.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
+        strcpy(req.BrokerID, BROKER_ID.c_str());
+        strcpy(req.InvestorID, INVESTOR_ID.c_str());
+        req.CombOffsetFlag[0] = root["CombOffsetFlag"].get<string>()[0];
+        req.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
+        req.VolumeCondition = THOST_FTDC_VC_AV;
+        req.MinVolume = 1;
+        req.ForceCloseReason = THOST_FTDC_FCC_NotForceClose;
+        req.ContingentCondition = root["ContingentCondition"].get<string>()[0];
+        req.IsAutoSuspend = 1;
+        req.UserForceClose = 0;
+        req.TimeCondition = root["TimeCondition"].get<string>()[0];
+        strcpy(req.IPAddress, IP_ADDRESS.c_str());
+        strcpy(req.MacAddress, MAC_ADDRESS.c_str());
+        iTradeRequestID = root["RequestID"].get<int>();
+        return pTraderApi->ReqOrderInsert(&req, iTradeRequestID);
+    } catch (json::exception &e) {
+        cout << "error: " << e.what() << endl;
+        logger->error("ReqOrderInsert failed: %v", e.what());
+        return -999;
     }
-    if (root["StopPrice"].is_null()) {
-        req.StopPrice = 0;
-    } else {
-        req.StopPrice = root["StopPrice"].get<double>();
-    }
-    req.VolumeTotalOriginal = root["VolumeTotalOriginal"].get<int>();
-    req.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
-    strcpy(req.BrokerID, BROKER_ID.c_str());
-    strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    req.CombOffsetFlag[0] = root["CombOffsetFlag"].get<char>();
-    req.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
-    req.VolumeCondition = THOST_FTDC_VC_AV;
-    req.MinVolume = 1;
-    req.ForceCloseReason = THOST_FTDC_FCC_NotForceClose;
-    req.ContingentCondition = root["ContingentCondition"].get<char>();
-    req.IsAutoSuspend = 1;
-    req.UserForceClose = 0;
-    req.TimeCondition = root["TimeCondition"].get<char>();
-    strcpy(req.IPAddress, IP_ADDRESS.c_str());
-    strcpy(req.MacAddress, MAC_ADDRESS.c_str());
-    iTradeRequestID = root["RequestID"].get<int>();
-    return pTraderApi->ReqOrderInsert(&req, iTradeRequestID);
 }
 
 int ReqOrderAction(const json &root) {
@@ -292,6 +298,7 @@ int ReqQryTrade(const json &root) {
 void handle_req_request(std::string pattern, std::string channel, std::string msg) {
     auto request_type = channel.substr(channel.find_last_of(':') + 1);
     json json_msg = json::parse(msg);
+    cout << "req_msg: " << json_msg << endl;
     std::lock_guard<std::mutex> lk(mut);
     cmd_queue.emplace(request_type, json_msg);
     if ( request_type.find_first_of("Subscribe") != std::string::npos )
@@ -370,8 +377,10 @@ void handle_command() {
             err = "未处理请求队列总数量超限";
         else if ( iResult == -3 )
             err = "每秒发送请求数量超限";
+        else if ( iResult == -999 )
+            err = "发送失败";
         logger->info("结果: %v", err);
-        if ( iResult ) {
+        if ( iResult > -999 && iResult < 0 ) {
             publisher->publish(CHANNEL_MARKET_DATA + "OnRspError:" + cmd_pair.second["RequestID"].get<string>(),
                                cmd_pair.second.dump());
         }
