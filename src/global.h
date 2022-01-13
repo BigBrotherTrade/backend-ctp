@@ -19,6 +19,7 @@
 #include <ThostFtdcTraderApi.h>
 #include <ThostFtdcMdApi.h>
 #define JSON_HAS_CPP_17 1
+#define JSON_USE_IMPLICIT_CONVERSIONS 0
 #include "json.hpp"
 #include "easylogging++.h"
 

@@ -98,7 +98,7 @@ int MarketReqUserLogin(const json &root) {
     strcpy(req.BrokerID, BROKER_ID.c_str());
     strcpy(req.UserID, INVESTOR_ID.c_str());
     strcpy(req.Password, PASSWORD.c_str());
-    iMarketRequestID = root["RequestID"];
+    iMarketRequestID = root["RequestID"].get<int>();
     return pMdApi->ReqUserLogin(&req, iMarketRequestID);
 }
 
