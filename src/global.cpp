@@ -176,15 +176,15 @@ int ReqOrderInsert(const json &root) {
         strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
         req.Direction = root["Direction"].get<string>()[0];
         strcpy(req.OrderRef, root["OrderRef"].get<string>().c_str());
-        if (root["LimitPrice"].is_null()) {
-            req.LimitPrice = 0;
-        } else {
+        if ( root.contains("LimitPrice") ) {
             req.LimitPrice = root["LimitPrice"].get<double>();
-        }
-        if (root["StopPrice"].is_null()) {
-            req.StopPrice = 0;
         } else {
+            req.LimitPrice = 0;
+        }
+        if (root.contains("StopPrice")) {
             req.StopPrice = root["StopPrice"].get<double>();
+        } else {
+            req.StopPrice = 0;
         }
         req.VolumeTotalOriginal = root["VolumeTotalOriginal"].get<int>();
         req.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
@@ -373,6 +373,7 @@ void handle_req_request(std::string pattern, std::string channel, std::string ms
     json json_msg;
     try {
         json_msg = json::parse(msg);
+        cout << "req=" << json_msg << endl;
     } catch (json::exception& e) {
         logger->error("handle_req_request failed: %v", e.what());
         return;
