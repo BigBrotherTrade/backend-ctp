@@ -21,7 +21,7 @@
 #endif
 #include <queue>
 #include <thread>
-
+#define ERROR_RESULT -999
 using namespace std;
 using json = nlohmann::json;
 
@@ -94,61 +94,85 @@ int IsTradeLogin(const json &root) {
 }
 
 int MarketReqUserLogin(const json &root) {
-    CThostFtdcReqUserLoginField req{};
-    strcpy(req.BrokerID, BROKER_ID.c_str());
-    strcpy(req.UserID, INVESTOR_ID.c_str());
-    strcpy(req.Password, PASSWORD.c_str());
-    iMarketRequestID = root["RequestID"].get<int>();
-    return pMdApi->ReqUserLogin(&req, iMarketRequestID);
+    try {
+        CThostFtdcReqUserLoginField req{};
+        strcpy(req.BrokerID, BROKER_ID.c_str());
+        strcpy(req.UserID, INVESTOR_ID.c_str());
+        strcpy(req.Password, PASSWORD.c_str());
+        iMarketRequestID = root["RequestID"].get<int>();
+        return pMdApi->ReqUserLogin(&req, iMarketRequestID);
+    } catch (json::exception& e) {
+        logger->error("MarketReqUserLogin failed: %v", e.what());
+        return ERROR_RESULT;
+    }
 }
 
 int SubscribeMarketData(const json &root) {
-    auto **charArray = new char *[root.size()];
-    for (unsigned int i = 0; i < root.size(); ++i) {
-        charArray[i] = new char[32];
-        strcpy(charArray[i], root[i].get<string>().c_str());
+    try {
+        auto **charArray = new char *[root.size()];
+        for (unsigned int i = 0; i < root.size(); ++i) {
+            charArray[i] = new char[32];
+            strcpy(charArray[i], root[i].get<string>().c_str());
+        }
+        logger->info("订阅合约数量: %v", root.size());
+        int iResult = pMdApi->SubscribeMarketData(charArray, (int) root.size());
+        for (unsigned int i = 0; i < root.size(); ++i)
+            delete charArray[i];
+        delete[](charArray);
+        return iResult;
+    } catch (json::exception &e) {
+        logger->error("SubscribeMarketData failed: %v", e.what());
+        return ERROR_RESULT;
     }
-    logger->info("订阅合约数量: %v", root.size());
-    int iResult = pMdApi->SubscribeMarketData(charArray, (int)root.size());
-    for (unsigned int i = 0; i < root.size(); ++i)
-        delete charArray[i];
-    delete[](charArray);
-    return iResult;
 }
 
 int UnSubscribeMarketData(const json &root) {
-    auto **charArray = new char *[root.size()];
-    for (unsigned int i = 0; i < root.size(); ++i) {
-        charArray[i] = new char[32];
-        strcpy(charArray[i], root[i].get<string>().c_str());
+    try {
+        auto **charArray = new char *[root.size()];
+        for (unsigned int i = 0; i < root.size(); ++i) {
+            charArray[i] = new char[32];
+            strcpy(charArray[i], root[i].get<string>().c_str());
+        }
+        int iResult = pMdApi->UnSubscribeMarketData(charArray, (int) root.size());
+        for (unsigned int i = 0; i < root.size(); ++i)
+            delete charArray[i];
+        delete[](charArray);
+        return iResult;
+    } catch (json::exception &e) {
+        logger->error("UnSubscribeMarketData failed: %v", e.what());
+        return ERROR_RESULT;
     }
-    int iResult = pMdApi->UnSubscribeMarketData(charArray, (int)root.size());
-    for (unsigned int i = 0; i < root.size(); ++i)
-        delete charArray[i];
-    delete[](charArray);
-    return iResult;
 }
 
 int ReqSettlementInfoConfirm(const json &root) {
-    shared_ptr<CThostFtdcSettlementInfoConfirmField> req(new CThostFtdcSettlementInfoConfirmField);
-    strcpy(req->BrokerID, BROKER_ID.c_str());
-    strcpy(req->InvestorID, INVESTOR_ID.c_str());
-    pTraderApi->ReqSettlementInfoConfirm(req.get(), root["RequestID"].get<int>());
-    return pTraderApi->ReqSettlementInfoConfirm(req.get(), root["RequestID"].get<int>());
+    try {
+        CThostFtdcSettlementInfoConfirmField req{};
+        strcpy(req.BrokerID, BROKER_ID.c_str());
+        strcpy(req.InvestorID, INVESTOR_ID.c_str());
+        return pTraderApi->ReqSettlementInfoConfirm(&req, root["RequestID"].get<int>());
+    } catch (json::exception &e) {
+        logger->error("ReqSettlementInfoConfirm failed: %v", e.what());
+        return ERROR_RESULT;
+    }
 }
 
 int TradeReqUserLogin(const json &root) {
-    CThostFtdcReqUserLoginField req{};
-    strcpy(req.BrokerID, BROKER_ID.c_str());
-    strcpy(req.UserID, INVESTOR_ID.c_str());
-    strcpy(req.Password, PASSWORD.c_str());
-    iTradeRequestID = root["RequestID"].get<int>();
-    return pTraderApi->ReqUserLogin(&req, iTradeRequestID);
+    try {
+        CThostFtdcReqUserLoginField req{};
+        strcpy(req.BrokerID, BROKER_ID.c_str());
+        strcpy(req.UserID, INVESTOR_ID.c_str());
+        strcpy(req.Password, PASSWORD.c_str());
+        iTradeRequestID = root["RequestID"].get<int>();
+        return pTraderApi->ReqUserLogin(&req, iTradeRequestID);
+    } catch (json::exception &e) {
+        logger->error("TradeReqUserLogin failed: %v", e.what());
+        return ERROR_RESULT;
+    }
 }
 
 int ReqOrderInsert(const json &root) {
-    CThostFtdcInputOrderField req{};
     try {
+        CThostFtdcInputOrderField req{};
         strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
         req.Direction = root["Direction"].get<string>()[0];
         strcpy(req.OrderRef, root["OrderRef"].get<string>().c_str());
@@ -180,125 +204,179 @@ int ReqOrderInsert(const json &root) {
         iTradeRequestID = root["RequestID"].get<int>();
         return pTraderApi->ReqOrderInsert(&req, iTradeRequestID);
     } catch (json::exception &e) {
-        cout << "error: " << e.what() << endl;
         logger->error("ReqOrderInsert failed: %v", e.what());
-        return -999;
+        return ERROR_RESULT;
     }
 }
 
 int ReqOrderAction(const json &root) {
-    CThostFtdcInputOrderActionField req{};
-    strcpy(req.BrokerID, BROKER_ID.c_str());
-    strcpy(req.InvestorID, INVESTOR_ID.c_str());
-//    strcpy(req.OrderRef, root["OrderRef"].get<string>().c_str());
-    strcpy(req.ExchangeID, root["ExchangeID"].get<string>().c_str());
-    strcpy(req.UserID, root["UserID"].get<string>().c_str());
-    strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
-    req.OrderActionRef = root["RequestID"].get<int>() + 1;
-//    req.FrontID = FRONT_ID;
-//    req.SessionID = SESSION_ID;
-    req.ActionFlag = THOST_FTDC_AF_Delete;
-    strcpy(req.IPAddress, IP_ADDRESS.c_str());
-    strcpy(req.MacAddress, MAC_ADDRESS.c_str());
-    strcpy(req.OrderSysID, root["OrderSysID"].get<string>().c_str());
-    iTradeRequestID = root["RequestID"].get<int>();
-    return pTraderApi->ReqOrderAction(&req, iTradeRequestID);
+    try {
+        CThostFtdcInputOrderActionField req{};
+        strcpy(req.BrokerID, BROKER_ID.c_str());
+        strcpy(req.InvestorID, INVESTOR_ID.c_str());
+        //    strcpy(req.OrderRef, root["OrderRef"].get<string>().c_str());
+        strcpy(req.ExchangeID, root["ExchangeID"].get<string>().c_str());
+        strcpy(req.UserID, root["UserID"].get<string>().c_str());
+        strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
+        req.OrderActionRef = root["RequestID"].get<int>() + 1;
+        //    req.FrontID = FRONT_ID;
+        //    req.SessionID = SESSION_ID;
+        req.ActionFlag = THOST_FTDC_AF_Delete;
+        strcpy(req.IPAddress, IP_ADDRESS.c_str());
+        strcpy(req.MacAddress, MAC_ADDRESS.c_str());
+        strcpy(req.OrderSysID, root["OrderSysID"].get<string>().c_str());
+        iTradeRequestID = root["RequestID"].get<int>();
+        return pTraderApi->ReqOrderAction(&req, iTradeRequestID);
+    } catch (json::exception &e) {
+        logger->error("ReqOrderAction failed: %v", e.what());
+        return ERROR_RESULT;
+    }
 }
 
 int ReqQrySettlementInfo(const json &root) {
-    CThostFtdcQrySettlementInfoField req{};
-    strcpy(req.BrokerID, BROKER_ID.c_str());
-    strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    iTradeRequestID = root["RequestID"].get<int>();
-    return pTraderApi->ReqQrySettlementInfo(&req, iTradeRequestID);
+    try {
+        CThostFtdcQrySettlementInfoField req{};
+        strcpy(req.BrokerID, BROKER_ID.c_str());
+        strcpy(req.InvestorID, INVESTOR_ID.c_str());
+        iTradeRequestID = root["RequestID"].get<int>();
+        return pTraderApi->ReqQrySettlementInfo(&req, iTradeRequestID);
+    } catch (json::exception &e) {
+        logger->error("ReqQrySettlementInfo failed: %v", e.what());
+        return ERROR_RESULT;
+    }
 }
 
 int ReqQryInstrument(const json &root) {
-    CThostFtdcQryInstrumentField req{};
-    if ( root.contains("InstrumentID") ) {
-        strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
+    try {
+        CThostFtdcQryInstrumentField req{};
+        if (root.contains("InstrumentID")) {
+            strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
+        }
+        if (root.contains("ExchangeID")) {
+            strcpy(req.ExchangeID, root["ExchangeID"].get<string>().c_str());
+        }
+        iTradeRequestID = root["RequestID"].get<int>();
+        return pTraderApi->ReqQryInstrument(&req, iTradeRequestID);
+    } catch (json::exception &e) {
+        logger->error("ReqQryInstrument failed: %v", e.what());
+        return ERROR_RESULT;
     }
-    if ( root.contains("ExchangeID") ) {
-        strcpy(req.ExchangeID, root["ExchangeID"].get<string>().c_str());
-    }
-    iTradeRequestID = root["RequestID"].get<int>();
-    return pTraderApi->ReqQryInstrument(&req, iTradeRequestID);
 }
 
 int ReqQryInstrumentCommissionRate(const json &root) {
-    CThostFtdcQryInstrumentCommissionRateField req{};
-    strcpy(req.BrokerID, BROKER_ID.c_str());
-    strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if ( root.contains("InstrumentID") ) {
-        strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
+    try {
+        CThostFtdcQryInstrumentCommissionRateField req{};
+        strcpy(req.BrokerID, BROKER_ID.c_str());
+        strcpy(req.InvestorID, INVESTOR_ID.c_str());
+        if (root.contains("InstrumentID")) {
+            strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
+        }
+        iTradeRequestID = root["RequestID"].get<int>();
+        return pTraderApi->ReqQryInstrumentCommissionRate(&req, iTradeRequestID);
+    } catch (json::exception &e) {
+        logger->error("ReqQryInstrumentCommissionRate failed: %v", e.what());
+        return ERROR_RESULT;
     }
-    iTradeRequestID = root["RequestID"].get<int>();
-    return pTraderApi->ReqQryInstrumentCommissionRate(&req, iTradeRequestID);
 }
 
 int ReqQryInstrumentMarginRate(const json &root) {
-    CThostFtdcQryInstrumentMarginRateField req{};
-    strcpy(req.BrokerID, BROKER_ID.c_str());
-    strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if ( root.contains("InstrumentID") ) {
-        strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
+    try {
+        CThostFtdcQryInstrumentMarginRateField req{};
+        strcpy(req.BrokerID, BROKER_ID.c_str());
+        strcpy(req.InvestorID, INVESTOR_ID.c_str());
+        if (root.contains("InstrumentID")) {
+            strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
+        }
+        iTradeRequestID = root["RequestID"].get<int>();
+        return pTraderApi->ReqQryInstrumentMarginRate(&req, iTradeRequestID);
+    } catch (json::exception &e) {
+        logger->error("ReqQryInstrumentMarginRate failed: %v", e.what());
+        return ERROR_RESULT;
     }
-    iTradeRequestID = root["RequestID"].get<int>();
-    return pTraderApi->ReqQryInstrumentMarginRate(&req, iTradeRequestID);
 }
 
 int ReqQryTradingAccount(const json &root) {
-    CThostFtdcQryTradingAccountField req{};
-    strcpy(req.BrokerID, BROKER_ID.c_str());
-    strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    iTradeRequestID = root["RequestID"].get<int>();
-    return pTraderApi->ReqQryTradingAccount(&req, iTradeRequestID);
+    try {
+        CThostFtdcQryTradingAccountField req{};
+        strcpy(req.BrokerID, BROKER_ID.c_str());
+        strcpy(req.InvestorID, INVESTOR_ID.c_str());
+        iTradeRequestID = root["RequestID"].get<int>();
+        return pTraderApi->ReqQryTradingAccount(&req, iTradeRequestID);
+    } catch (json::exception &e) {
+        logger->error("ReqQryTradingAccount failed: %v", e.what());
+        return ERROR_RESULT;
+    }
 }
 
 int ReqQryInvestorPosition(const json &root) {
-    CThostFtdcQryInvestorPositionField req{};
-    strcpy(req.BrokerID, BROKER_ID.c_str());
-    strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if ( root.contains("InstrumentID") ) {
-        strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
+    try {
+        CThostFtdcQryInvestorPositionField req{};
+        strcpy(req.BrokerID, BROKER_ID.c_str());
+        strcpy(req.InvestorID, INVESTOR_ID.c_str());
+        if (root.contains("InstrumentID")) {
+            strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
+        }
+        iTradeRequestID = root["RequestID"].get<int>();
+        return pTraderApi->ReqQryInvestorPosition(&req, iTradeRequestID);
+    } catch (json::exception &e) {
+        logger->error("ReqQryInvestorPosition failed: %v", e.what());
+        return ERROR_RESULT;
     }
-    iTradeRequestID = root["RequestID"].get<int>();
-    return pTraderApi->ReqQryInvestorPosition(&req, iTradeRequestID);
 }
 
 int ReqQryInvestorPositionDetail(const json &root) {
-    CThostFtdcQryInvestorPositionDetailField req{};
-    strcpy(req.BrokerID, BROKER_ID.c_str());
-    strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    if ( root.contains("InstrumentID") ) {
-        strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
+    try {
+        CThostFtdcQryInvestorPositionDetailField req{};
+        strcpy(req.BrokerID, BROKER_ID.c_str());
+        strcpy(req.InvestorID, INVESTOR_ID.c_str());
+        if (root.contains("InstrumentID")) {
+            strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
+        }
+        iTradeRequestID = root["RequestID"].get<int>();
+        return pTraderApi->ReqQryInvestorPositionDetail(&req, iTradeRequestID);
+    } catch (json::exception &e) {
+        logger->error("ReqQryInvestorPositionDetail failed: %v", e.what());
+        return ERROR_RESULT;
     }
-    iTradeRequestID = root["RequestID"].get<int>();
-    return pTraderApi->ReqQryInvestorPositionDetail(&req, iTradeRequestID);
 }
 
 int ReqQryOrder(const json &root) {
-    CThostFtdcQryOrderField req{};
-    strcpy(req.BrokerID, BROKER_ID.c_str());
-    strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    iTradeRequestID = root["RequestID"].get<int>();
-    return pTraderApi->ReqQryOrder(&req, iTradeRequestID);
+    try {
+        CThostFtdcQryOrderField req{};
+        strcpy(req.BrokerID, BROKER_ID.c_str());
+        strcpy(req.InvestorID, INVESTOR_ID.c_str());
+        iTradeRequestID = root["RequestID"].get<int>();
+        return pTraderApi->ReqQryOrder(&req, iTradeRequestID);
+    } catch (json::exception &e) {
+        logger->error("ReqQryOrder failed: %v", e.what());
+        return ERROR_RESULT;
+    }
 }
 
 int ReqQryTrade(const json &root) {
-    CThostFtdcQryTradeField req{};
-    strcpy(req.BrokerID, BROKER_ID.c_str());
-    strcpy(req.InvestorID, INVESTOR_ID.c_str());
-    strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
-    strcpy(req.TradeID, root["TradeID"].get<string>().c_str());
-    iTradeRequestID = root["RequestID"].get<int>();
-    return pTraderApi->ReqQryTrade(&req, iTradeRequestID);
+    try {
+        CThostFtdcQryTradeField req{};
+        strcpy(req.BrokerID, BROKER_ID.c_str());
+        strcpy(req.InvestorID, INVESTOR_ID.c_str());
+        strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
+        strcpy(req.TradeID, root["TradeID"].get<string>().c_str());
+        iTradeRequestID = root["RequestID"].get<int>();
+        return pTraderApi->ReqQryTrade(&req, iTradeRequestID);
+    } catch (json::exception &e) {
+        logger->error("ReqQryTrade failed: %v", e.what());
+        return ERROR_RESULT;
+    }
 }
 
 void handle_req_request(std::string pattern, std::string channel, std::string msg) {
     auto request_type = channel.substr(channel.find_last_of(':') + 1);
-    json json_msg = json::parse(msg);
-    cout << "req_msg: " << json_msg << endl;
+    json json_msg;
+    try {
+        json_msg = json::parse(msg);
+    } catch (json::exception& e) {
+        logger->error("handle_req_request failed: %v", e.what());
+        return;
+    }
     std::lock_guard<std::mutex> lk(mut);
     cmd_queue.emplace(request_type, json_msg);
     if ( request_type.find_first_of("Subscribe") != std::string::npos )
@@ -377,10 +455,10 @@ void handle_command() {
             err = "未处理请求队列总数量超限";
         else if ( iResult == -3 )
             err = "每秒发送请求数量超限";
-        else if ( iResult == -999 )
+        else if ( iResult == ERROR_RESULT )
             err = "发送失败";
         logger->info("结果: %v", err);
-        if ( iResult > -999 && iResult < 0 ) {
+        if ( iResult != ERROR_RESULT && iResult < 0 ) {
             publisher->publish(CHANNEL_MARKET_DATA + "OnRspError:" + cmd_pair.second["RequestID"].get<string>(),
                                cmd_pair.second.dump());
         }
