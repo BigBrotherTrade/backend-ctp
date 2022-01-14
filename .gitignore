@@ -3,6 +3,7 @@ bin
 .idea
 *.con
 api/win/backend-ctp
+api/linux/backend-ctp
 api/win/backend-ctp.exe
 api/win/backend-ctp.exe.manifest
 api/win/backend-ctp.log
