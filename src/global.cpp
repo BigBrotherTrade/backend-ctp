@@ -460,8 +460,8 @@ void handle_command() {
             err = "发送失败";
         logger->info("结果: %v", err);
         if ( iResult != ERROR_RESULT && iResult < 0 ) {
-            publisher->publish(CHANNEL_MARKET_DATA + "OnRspError:" + cmd_pair.second["RequestID"].get<string>(),
-                               cmd_pair.second.dump());
+            publisher->publish(CHANNEL_MARKET_DATA + "OnRspError:" +
+            ntos(cmd_pair.second["RequestID"].get<int>()), cmd_pair.second.dump());
         }
     }
     logger->info("监听线程已退出.");
