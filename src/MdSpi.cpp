@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <format>
 #include "MdSpi.h"
 #include "global.h"
 
@@ -25,17 +26,17 @@ void CMdSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo,
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = pRspInfo->ErrorID;
-    publisher->publish(CHANNEL_MARKET_DATA + "OnRspError:" + ntos(nRequestID), root.dump());
+    publisher->publish(format("{}OnRspError:{}", CHANNEL_MARKET_DATA, ntos(nRequestID)), root.dump());
 }
 
 void CMdSpi::OnFrontDisconnected(int nReason) {
-    publisher->publish(CHANNEL_MARKET_DATA + "OnFrontDisconnected", ntos(nReason));
+    publisher->publish(format("{}OnFrontDisconnected:{}", CHANNEL_MARKET_DATA), ntos(nReason));
     market_login = false;
     el::Helpers::setThreadName("market");
 }
 
 void CMdSpi::OnHeartBeatWarning(int nTimeLapse) {
-    publisher->publish(CHANNEL_MARKET_DATA + "OnHeartBeatWarning", ntos(nTimeLapse));
+    publisher->publish(format("{}OnHeartBeatWarning:{}", CHANNEL_MARKET_DATA), ntos(nTimeLapse));
 }
 
 void CMdSpi::OnFrontConnected() {
@@ -44,7 +45,7 @@ void CMdSpi::OnFrontConnected() {
     strcpy(req->UserID, INVESTOR_ID.c_str());
     strcpy(req->Password, PASSWORD.c_str());
     pMdApi->ReqUserLogin(req.get(), 1);
-    publisher->publish(CHANNEL_MARKET_DATA + "OnFrontConnected", "OnFrontConnected");
+    publisher->publish(format("{}OnFrontConnected", CHANNEL_MARKET_DATA), "OnFrontConnected");
     el::Helpers::setThreadName("market");
     logger->info("行情前置已连接！发送行情登录请求..");
 }
@@ -74,7 +75,7 @@ void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
         root["INETime"] = pRspUserLogin->INETime;
         market_login = true;
     }
-    publisher->publish(CHANNEL_MARKET_DATA + "OnRspUserLogin:" + ntos(nRequestID), root.dump());
+    publisher->publish(format("{}OnRspUserLogin:{}", CHANNEL_MARKET_DATA, ntos(nRequestID)), root.dump());
     logger->info("行情登录成功！交易日：%v", pRspUserLogin->TradingDay);
 }
 
@@ -89,7 +90,7 @@ void CMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInst
     } else {
         root["InstrumentID"] = pSpecificInstrument->InstrumentID;
     }
-    publisher->publish(CHANNEL_MARKET_DATA + "OnRspSubMarketData:" + ntos(nRequestID), root.dump());
+    publisher->publish(format("{}OnRspSubMarketData:{}", CHANNEL_MARKET_DATA, ntos(nRequestID)), root.dump());
 }
 
 void CMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument,
@@ -103,7 +104,7 @@ void CMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificIn
     } else {
         root["InstrumentID"] = pSpecificInstrument->InstrumentID;
     }
-    publisher->publish(CHANNEL_MARKET_DATA + "OnRspUnSubMarketData:" + ntos(nRequestID), root.dump());
+    publisher->publish(format("{}OnRspUnSubMarketData:{}", CHANNEL_MARKET_DATA, ntos(nRequestID)), root.dump());
 }
 
 void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pData) {
@@ -139,6 +140,7 @@ void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pData) {
     sprintf(time_str, "%s %s:%d", pData->ActionDay, pData->UpdateTime, pData->UpdateMillisec * 1000);
     root["UpdateTime"] = string(time_str);
     auto data_str = root.dump();
-    publisher->publish(CHANNEL_MARKET_DATA + "OnRtnDepthMarketData:" + root["InstrumentID"].get<string>(), data_str);
-    publisher->set("TICK:" + root["InstrumentID"].get<string>(), data_str);
+    publisher->publish(
+            format("{}OnRtnDepthMarketData:{}", CHANNEL_MARKET_DATA, root["InstrumentID"].get<string>()), data_str);
+    publisher->set(format("TICK:{}", root["InstrumentID"].get<string>()), data_str);
 }

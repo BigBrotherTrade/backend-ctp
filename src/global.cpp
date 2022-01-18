@@ -19,6 +19,7 @@
 #elif defined(_WIN32)
 #include <windows.h>
 #endif
+#include <format>
 #include <queue>
 #include <thread>
 #define ERROR_RESULT -999
@@ -84,12 +85,12 @@ std::string ntos(int n) {
 }
 
 int IsMarketLogin(const json &root) {
-    publisher->publish(CHANNEL_MARKET_DATA + "IsMarketLogin", ntos(market_login));
+    publisher->publish(format("{}IsMarketLogin", CHANNEL_MARKET_DATA), ntos(market_login));
     return 1;
 }
 
 int IsTradeLogin(const json &root) {
-    publisher->publish(CHANNEL_TRADE_DATA + "IsTradeLogin", ntos(trade_login));
+    publisher->publish(format("{}IsTradeLogin", CHANNEL_MARKET_DATA), ntos(trade_login));
     return 1;
 }
 
@@ -460,8 +461,9 @@ void handle_command() {
             err = "发送失败";
         logger->info("结果: %v", err);
         if ( iResult != ERROR_RESULT && iResult < 0 ) {
-            publisher->publish(CHANNEL_MARKET_DATA + "OnRspError:" +
-            ntos(cmd_pair.second["RequestID"].get<int>()), cmd_pair.second.dump());
+            publisher->publish(
+                    format("{}OnRspError:{}", CHANNEL_MARKET_DATA, ntos(cmd_pair.second["RequestID"].get<int>())),
+                    cmd_pair.second.dump());
         }
     }
     logger->info("监听线程已退出.");

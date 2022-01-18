@@ -15,6 +15,7 @@
  */
 #include <iostream>
 #include <thread>
+#include <format>
 #include "TraderSpi.h"
 #include "MdSpi.h"
 #include "global.h"
@@ -32,9 +33,9 @@ int main(int argc, char **argv) {
 #ifdef _WIN32
     std::filesystem::path config_file = std::filesystem::current_path() / "config.ini";
     std::string config_path(std::filesystem::current_path().string());
-    cout << "config-file: " << config_path + "\\config.ini"<< endl;
+    cout << format("config-file: {}\\config.ini", config_path) << endl;
     std::string& log_path = config_path;
-    cout << "log-file: " << log_path + "\\backend-ctp.log"<< endl;
+    cout << format("log-file: {}\\backend-ctp.log", log_path) << endl;
     std::string& md_path = config_path;
     std::string& trade_path = config_path;
     std::ifstream 	ifs(config_file.string());
@@ -47,8 +48,8 @@ int main(int argc, char **argv) {
     mkdir( log_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
     mkdir( md_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
     mkdir( trade_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
-    cout << "config-file: " << config_path << endl;
-    cout << "log-file: " << log_path + "/backend-ctp.log"<< endl;
+    cout << format("config-file: {}", config_path) << endl;
+    cout << format("log-file: {}/backend-ctp.log", log_path) << endl;
     std::ifstream 	ifs(config_path);
 #endif
     std::string 	line, key, split, val;
