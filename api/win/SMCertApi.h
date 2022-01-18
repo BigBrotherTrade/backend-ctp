@@ -5,165 +5,165 @@
 extern "C" {
 #endif // __cplusplus
 
-/* SDK 错误码 */
-#define SMCERTSDK_ERR_NONE                    0                             /* 成功 */
-#define SMCERTSDK_ERR_BASE                    0x0A000000                    /* 错误码 */
-#define SMCERTSDK_ERR_FAILED                  (SMCERTSDK_ERR_BASE + 0x0001)     /* 失败 */
-#define SMCERTSDK_ERR_LOCALRETRY              (SMCERTSDK_ERR_BASE + 0x0002)     /* 本地主动调用异步接口重试 */
+/* SDK ������ */
+#define SMCERTSDK_ERR_NONE                    0                             /* �ɹ� */
+#define SMCERTSDK_ERR_BASE                    0x0A000000                    /* ������ */
+#define SMCERTSDK_ERR_FAILED                  (SMCERTSDK_ERR_BASE + 0x0001)     /* ʧ�� */
+#define SMCERTSDK_ERR_LOCALRETRY              (SMCERTSDK_ERR_BASE + 0x0002)     /* �������������첽�ӿ����� */
 
-#define SMCERTSDK_ERR_INTERNAL_UNKNOWN        (SMCERTSDK_ERR_BASE + 0x0100)     /* 内部未知错误 */
-#define SMCERTSDK_ERR_INTERNAL_GENKEY         (SMCERTSDK_ERR_BASE + 0x0101)     /* 产生密钥对失败 */
-#define SMCERTSDK_ERR_INTERNAL_DIGEST         (SMCERTSDK_ERR_BASE + 0x0102)     /* 摘要失败 */
-#define SMCERTSDK_ERR_INTERNAL_BASE64         (SMCERTSDK_ERR_BASE + 0x0103)     /* base64编码失败 */
-#define SMCERTSDK_ERR_INTERNAL_RANDOM         (SMCERTSDK_ERR_BASE + 0x0104)     /* 产生随机数失败 */
-#define SMCERTSDK_ERR_INTERNAL_XTSIGN         (SMCERTSDK_ERR_BASE + 0x0105)     /* 协同签名失败 */
+#define SMCERTSDK_ERR_INTERNAL_UNKNOWN        (SMCERTSDK_ERR_BASE + 0x0100)     /* �ڲ�δ֪���� */
+#define SMCERTSDK_ERR_INTERNAL_GENKEY         (SMCERTSDK_ERR_BASE + 0x0101)     /* ������Կ��ʧ�� */
+#define SMCERTSDK_ERR_INTERNAL_DIGEST         (SMCERTSDK_ERR_BASE + 0x0102)     /* ժҪʧ�� */
+#define SMCERTSDK_ERR_INTERNAL_BASE64         (SMCERTSDK_ERR_BASE + 0x0103)     /* base64����ʧ�� */
+#define SMCERTSDK_ERR_INTERNAL_RANDOM         (SMCERTSDK_ERR_BASE + 0x0104)     /* ���������ʧ�� */
+#define SMCERTSDK_ERR_INTERNAL_XTSIGN         (SMCERTSDK_ERR_BASE + 0x0105)     /* Эͬǩ��ʧ�� */
 
-#define SMCERTSDK_ERR_PARAM_NULL              (SMCERTSDK_ERR_BASE + 0x0200)     /* 空参数 */
-#define SMCERTSDK_ERR_PARAM_INVALID           (SMCERTSDK_ERR_BASE + 0x0201)     /* 参数非法 */
-#define SMCERTSDK_ERR_PARAM_BUFFER_SMALL      (SMCERTSDK_ERR_BASE + 0x0202)     /* 缓冲区太小 */
+#define SMCERTSDK_ERR_PARAM_NULL              (SMCERTSDK_ERR_BASE + 0x0200)     /* �ղ��� */
+#define SMCERTSDK_ERR_PARAM_INVALID           (SMCERTSDK_ERR_BASE + 0x0201)     /* �����Ƿ� */
+#define SMCERTSDK_ERR_PARAM_BUFFER_SMALL      (SMCERTSDK_ERR_BASE + 0x0202)     /* ������̫С */
 
-#define SMCERTSDK_ERR_NETWORK_CONNECT         (SMCERTSDK_ERR_BASE + 0x0300)     /* 连接出错 */
-#define SMCERTSDK_ERR_NETWORK_REQUEST         (SMCERTSDK_ERR_BASE + 0x0301)     /* 请求错误 */
-#define SMCERTSDK_ERR_NETWORK_RESPONSE        (SMCERTSDK_ERR_BASE + 0x0302)     /* 响应错误 */
+#define SMCERTSDK_ERR_NETWORK_CONNECT         (SMCERTSDK_ERR_BASE + 0x0300)     /* ���ӳ��� */
+#define SMCERTSDK_ERR_NETWORK_REQUEST         (SMCERTSDK_ERR_BASE + 0x0301)     /* ������� */
+#define SMCERTSDK_ERR_NETWORK_RESPONSE        (SMCERTSDK_ERR_BASE + 0x0302)     /* ��Ӧ���� */
 
-#define SMCERTSDK_ERR_STORE_UNKNOWN     (SMCERTSDK_ERR_BASE + 0x0400)     /* 存储未知错误 */
-#define SMCERTSDK_ERR_PIN_INCORRECT     (SMCERTSDK_ERR_BASE + 0x0401)     /* PIN 不正确 */
-#define SMCERTSDK_ERR_PIN_LOCKED        (SMCERTSDK_ERR_BASE + 0x0402)     /* PIN 已锁定 */
-#define SMCERTSDK_ERR_CERT_NOT_EXISTS   (SMCERTSDK_ERR_BASE + 0x0403)     /* 本地证书不存在 */
-#define SMCERTSDK_ERR_CERT_EXPIRED      (SMCERTSDK_ERR_BASE + 0x0404)     /* 证书过期 */
-#define SMCERTSDK_ERR_CERT_OVERLIMIT    (SMCERTSDK_ERR_BASE + 0x0405)     /* 证书个数超限 */
-#define SMCERTSDK_ERR_CERT_INVALID      (SMCERTSDK_ERR_BASE + 0x0406)     /* 证书无效，以及其他未定义错误 */
-#define SMCERTSDK_ERR_USER_PASS		    (SMCERTSDK_ERR_BASE + 0x0407)     /* 错误的用户名或密码 */
-#define SMCERTSDK_ERR_PIN_WRONGFORMAT   (SMCERTSDK_ERR_BASE + 0x0408)     /* PIN码格式不正确 */
+#define SMCERTSDK_ERR_STORE_UNKNOWN     (SMCERTSDK_ERR_BASE + 0x0400)     /* �洢δ֪���� */
+#define SMCERTSDK_ERR_PIN_INCORRECT     (SMCERTSDK_ERR_BASE + 0x0401)     /* PIN ����ȷ */
+#define SMCERTSDK_ERR_PIN_LOCKED        (SMCERTSDK_ERR_BASE + 0x0402)     /* PIN ������ */
+#define SMCERTSDK_ERR_CERT_NOT_EXISTS   (SMCERTSDK_ERR_BASE + 0x0403)     /* ����֤�鲻���� */
+#define SMCERTSDK_ERR_CERT_EXPIRED      (SMCERTSDK_ERR_BASE + 0x0404)     /* ֤����� */
+#define SMCERTSDK_ERR_CERT_OVERLIMIT    (SMCERTSDK_ERR_BASE + 0x0405)     /* ֤��������� */
+#define SMCERTSDK_ERR_CERT_INVALID      (SMCERTSDK_ERR_BASE + 0x0406)     /* ֤����Ч���Լ�����δ������� */
+#define SMCERTSDK_ERR_USER_PASS		    (SMCERTSDK_ERR_BASE + 0x0407)     /* ������û��������� */
+#define SMCERTSDK_ERR_PIN_WRONGFORMAT   (SMCERTSDK_ERR_BASE + 0x0408)     /* PIN���ʽ����ȷ */
 
-/* SSL错误码 */
-#define SMSSLCERT_ERROR_NONE                  0       /* 操作成功 */
-#define SMSSLCERT_ERROR_SSL                   1       /* SSL错误 */
-#define SMSSLCERT_ERROR_WANT_READ             2       /* 读阻塞 */
-#define SMSSLCERT_ERROR_WANT_WRITE            3       /* 写阻塞 */
-#define SMSSLCERT_ERROR_SYSCALL               5       /* 系统中断 */
-#define SMSSLCERT_ERROR_ZERO_RETURN           6       /* SSL连接关闭 */
-#define SMSSLCERT_ERROR_WANT_CONNECT          7       /* 连接阻塞 */
-#define SMSSLCERT_ERROR_WANT_ACCEPT           8       /* 监听阻塞 */
+/* SSL������ */
+#define SMSSLCERT_ERROR_NONE                  0       /* �����ɹ� */
+#define SMSSLCERT_ERROR_SSL                   1       /* SSL���� */
+#define SMSSLCERT_ERROR_WANT_READ             2       /* ������ */
+#define SMSSLCERT_ERROR_WANT_WRITE            3       /* д���� */
+#define SMSSLCERT_ERROR_SYSCALL               5       /* ϵͳ�ж� */
+#define SMSSLCERT_ERROR_ZERO_RETURN           6       /* SSL���ӹر� */
+#define SMSSLCERT_ERROR_WANT_CONNECT          7       /* �������� */
+#define SMSSLCERT_ERROR_WANT_ACCEPT           8       /* �������� */
 
-/* 证书、签名验签配置 */
+/* ֤�顢ǩ����ǩ���� */
 typedef struct SMCertUserConfig_s {
-    const char  *BrokerID;          /* 用户的 broker id */
-    const char  *UserID;            /* 用户的 user id */
-	const char  *Pin;				/* 用户的本地PIN码 */
-	const char  *Password;			/* 用户的密码，用于用户下证校验 */
-	const char  *CertHost;         /* 协同签名服务器地址 */
-    int          CertPort;         /* 协同签名服务端端口 */
-	int          CertSocket;       /* 该字段为预留字段：同步通讯模式，填-1; 异步通讯模式时传入协同签名服务socket；目前厂商API仅支持同步 */
-    int          TimeoutMs;         /* 连接超时时间（毫秒）*/
+    const char  *BrokerID;          /* �û��� broker id */
+    const char  *UserID;            /* �û��� user id */
+	const char  *Pin;				/* �û��ı���PIN�� */
+	const char  *Password;			/* �û������룬�����û���֤У�� */
+	const char  *CertHost;         /* Эͬǩ����������ַ */
+    int          CertPort;         /* Эͬǩ������˶˿� */
+	int          CertSocket;       /* ���ֶ�ΪԤ���ֶΣ�ͬ��ͨѶģʽ����-1; �첽ͨѶģʽʱ����Эͬǩ������socket��Ŀǰ����API��֧��ͬ�� */
+    int          TimeoutMs;         /* ���ӳ�ʱʱ�䣨���룩*/
 } SMCertUserConfig_t;
 
 
-/* 证书信息 */
+/* ֤����Ϣ */
 typedef struct SMCert_s {
-	char CertID[50];	/* 证书唯一标识，该字段为自定义的唯一标识，作为该用户证书的唯一证书标识*/
-	char UserID[30];	/* 用户ID，该字段为创建句柄时传入的UserID */
-	char DeviceID[100];	/* 设备标识，该字段为自定义的唯一标识，作为该用户在在该设备上的唯一设备标识 */
-	char CertInfo[1024];/* 证书信息，该字段内容为证书的证书主题，证书主题的每个字段间用'/'分隔 */
-	int  IsCurrent;     /* 是否为当前设备证书, 1:是 0:否 */
+	char CertID[50];	/* ֤��Ψһ��ʶ�����ֶ�Ϊ�Զ����Ψһ��ʶ����Ϊ���û�֤���Ψһ֤���ʶ*/
+	char UserID[30];	/* �û�ID�����ֶ�Ϊ�������ʱ�����UserID */
+	char DeviceID[100];	/* �豸��ʶ�����ֶ�Ϊ�Զ����Ψһ��ʶ����Ϊ���û����ڸ��豸�ϵ�Ψһ�豸��ʶ */
+	char CertInfo[1024];/* ֤����Ϣ�����ֶ�����Ϊ֤���֤�����⣬֤�������ÿ���ֶμ���'/'�ָ� */
+	int  IsCurrent;     /* �Ƿ�Ϊ��ǰ�豸֤��, 1:�� 0:�� */
 } SMCert_t;
 
 
 
-/* SDK句柄 */
+/* SDK��� */
 typedef void * SMCertSDK_t;
 
 /*
- * 返回当前API版本
+ * ���ص�ǰAPI�汾
  *
  * @return const char * 
  */
 const char * SMCertSDK_GetVersion();
 
 /**
- * @brief SDK全局初始化
+ * @brief SDKȫ�ֳ�ʼ��
  *
- * 程序开始运行后，一个进程内，SDK需要且仅需要一次全局初始化
- * 一般用于加载第三方的dll等操作
- * @param LogFile  [in] 错误日志文件（为空则不记录错误日志）
- * @return int	   成功返回 SMCERTSDK_ERR_NONE
- *                 失败返回错误码
+ * ����ʼ���к�һ�������ڣ�SDK��Ҫ�ҽ���Ҫһ��ȫ�ֳ�ʼ��
+ * һ�����ڼ��ص�������dll�Ȳ���
+ * @param LogFile  [in] ������־�ļ���Ϊ���򲻼�¼������־��
+ * @return int	   �ɹ����� SMCERTSDK_ERR_NONE
+ *                 ʧ�ܷ��ش�����
  */
 int SMCertSDK_Init(const char *LogFile);
 
 /**
- * @brief SDK全局初始化清理
+ * @brief SDKȫ�ֳ�ʼ������
  *
- * 程序结束运行前，SDK需要且仅需要一次全局初始化的清理
+ * �����������ǰ��SDK��Ҫ�ҽ���Ҫһ��ȫ�ֳ�ʼ��������
  *
- * @return int  成功返回 SMCERTSDK_ERR_NONE
- *              失败返回错误码
+ * @return int  �ɹ����� SMCERTSDK_ERR_NONE
+ *              ʧ�ܷ��ش�����
  */
 int SMCertSDK_Clean(void);
 
 /**
- * @brief 创建句柄
+ * @brief �������
  * 
- * 一个句柄只需调用一次。
- * 客户端调用时，如用户名可能发生改变，应调用SMCertSDK_Free释放原句柄后，重新调用该函数生成新句柄使用。
+ * һ�����ֻ�����һ�Ρ�
+ * �ͻ��˵���ʱ�����û������ܷ����ı䣬Ӧ����SMCertSDK_Free�ͷ�ԭ��������µ��øú��������¾��ʹ�á�
  *
- * @param Config  [in] 用户参数配置
- * @param hSDK    [out] 句柄
- * @return int    成功返回 SMCERTSDK_ERR_NONE
- *                失败返回错误码
+ * @param Config  [in] �û���������
+ * @param hSDK    [out] ���
+ * @return int    �ɹ����� SMCERTSDK_ERR_NONE
+ *                ʧ�ܷ��ش�����
  */
 int SMCertSDK_New(const SMCertUserConfig_t *Config, SMCertSDK_t *hSDK);
 
 /**
- * @brief 释放句柄
+ * @brief �ͷž��
  *
- * 释放SDK句柄。
+ * �ͷ�SDK�����
  *
- * @param hSDK  [in] SDK句柄
- * @return int  成功返回 SMCERTSDK_ERR_NONE
- *              失败返回错误码
+ * @param hSDK  [in] SDK���
+ * @return int  �ɹ����� SMCERTSDK_ERR_NONE
+ *              ʧ�ܷ��ش�����
  */
 int SMCertSDK_Free(SMCertSDK_t hSDK);
 
 
 /**
- * @brief 申请用户证书，并设置用户PIN码，PIN码长度不能小于6位
+ * @brief �����û�֤�飬�������û�PIN�룬PIN�볤�Ȳ���С��6λ
  *
  *
- * 如果本地有有效证书，厂商API需校验PIN
- * 如PIN校验失败，返回SMCERTSDK_ERR_PIN_INCORRECT
- * 如无有效证书，直接继续签发证书流程
+ * �����������Ч֤�飬����API��У��PIN
+ * ��PINУ��ʧ�ܣ�����SMCERTSDK_ERR_PIN_INCORRECT
+ * ������Ч֤�飬ֱ�Ӽ���ǩ��֤������
  *
- * 无有效证书时，后台需校验用户密码
- * 若后台校验PASSWORD失败，返回SMCERTSDK_ERR_USER_PASS
- * 若后台校验PASSWORD成功，继续签发证书流程
+ * ����Ч֤��ʱ����̨��У���û�����
+ * ����̨У��PASSWORDʧ�ܣ�����SMCERTSDK_ERR_USER_PASS
+ * ����̨У��PASSWORD�ɹ�������ǩ��֤������
  * 
  *
- * @param hSDK		[in] SDK句柄
- * @return int   成功返回 SMCERTSDK_ERR_NONE
- *				PIN码长度小于6位 SMCERTSDK_ERR_PIN_WRONGFORMAT
- *              网络IO阻塞返回 SMSSLCERT_ERROR_WANT_READ/SMSSLCERT_ERROR_WANT_WRITE
- *				本地IO阻塞返回 SMCERTSDK_ERR_LOCALRETRY
- *              失败返回错误码
+ * @param hSDK		[in] SDK���
+ * @return int   �ɹ����� SMCERTSDK_ERR_NONE
+ *				PIN�볤��С��6λ SMCERTSDK_ERR_PIN_WRONGFORMAT
+ *              ����IO�������� SMSSLCERT_ERROR_WANT_READ/SMSSLCERT_ERROR_WANT_WRITE
+ *				����IO�������� SMCERTSDK_ERR_LOCALRETRY
+ *              ʧ�ܷ��ش�����
  *
  */
 int SMCertSDK_CertEnroll(SMCertSDK_t hSDK);
 
 
 /**
- * @brief 延期本设备用户证书
+ * @brief ���ڱ��豸�û�֤��
  *
- * 后台需校验用户密码
- * 若后台校验PASSWORD失败，返回SMCERTSDK_ERR_USER_PASS
- * 若后台校验PASSWORD成功，才可以继续延期证书。
+ * ��̨��У���û�����
+ * ����̨У��PASSWORDʧ�ܣ�����SMCERTSDK_ERR_USER_PASS
+ * ����̨У��PASSWORD�ɹ����ſ��Լ�������֤�顣
  *
- * 国密厂商API内需校验PIN（存储于hSDK句柄中），若PIN校验错达到10次，锁定PIN码，返回SMCERTSDK_ERR_PIN_LOCKED错误码
+ * ���ܳ���API����У��PIN���洢��hSDK����У�����PINУ����ﵽ10�Σ�����PIN�룬����SMCERTSDK_ERR_PIN_LOCKED������
  *
- * @param hSDK		[in] SDK句柄
- * @return int  成功返回 SMCERTSDK_ERR_NONE
- *              网络IO阻塞返回 SMSSLCERT_ERROR_WANT_READ/SMSSLCERT_ERROR_WANT_WRITE
- *				本地IO阻塞返回 SMCERTSDK_ERR_LOCALRETRY
- *              失败返回错误码
+ * @param hSDK		[in] SDK���
+ * @return int  �ɹ����� SMCERTSDK_ERR_NONE
+ *              ����IO�������� SMSSLCERT_ERROR_WANT_READ/SMSSLCERT_ERROR_WANT_WRITE
+ *				����IO�������� SMCERTSDK_ERR_LOCALRETRY
+ *              ʧ�ܷ��ش�����
  *
  */
 int SMCertSDK_CertDelay(SMCertSDK_t hSDK);
@@ -171,60 +171,60 @@ int SMCertSDK_CertDelay(SMCertSDK_t hSDK);
 
 
 /**
- * @brief 查询用户服务端所有有效的证书信息，已过期或已作废的证书不返回；
+ * @brief ��ѯ�û������������Ч��֤����Ϣ���ѹ��ڻ������ϵ�֤�鲻���أ�
  *
- * 允许用户在登录之前调用，查询出自己的证书，以告知后台管理员证书信息，注销服务端证书。
- * 后台需校验用户密码
- * 若后台校验PASSWORD失败，返回SMCERTSDK_ERR_USER_PASS
- * 若后台校验PASSWORD成功，才可以继续查询证书。
+ * �����û��ڵ�¼֮ǰ���ã���ѯ���Լ���֤�飬�Ը�֪��̨����Ա֤����Ϣ��ע�������֤�顣
+ * ��̨��У���û�����
+ * ����̨У��PASSWORDʧ�ܣ�����SMCERTSDK_ERR_USER_PASS
+ * ����̨У��PASSWORD�ɹ����ſ��Լ�����ѯ֤�顣
  *
- * pCert指针指向的内存，由厂商dll内部申请； 在SMCertSDK_Free调用后，厂商dll内释放该内存
- * 如多次调用该接口，厂商dll内会重新申请内存导出
+ * pCertָ��ָ����ڴ棬�ɳ���dll�ڲ����룻 ��SMCertSDK_Free���ú󣬳���dll���ͷŸ��ڴ�
+ * ���ε��øýӿڣ�����dll�ڻ����������ڴ浼��
  *
- * @param hSDK		[in] SDK句柄
- * @param pCert [out] 该用户名下所有证书
- * @param total [out] 该用户名下所有证书个数
+ * @param hSDK		[in] SDK���
+ * @param pCert [out] ���û���������֤��
+ * @param total [out] ���û���������֤�����
  * @return int
  *
  */
 int SMCertSDK_CertQuery(SMCertSDK_t hSDK, const SMCert_t **pCert, int *total);
 
 /**
- * @brief 废弃用户证书
+ * @brief �����û�֤��
  *
- * 用户登录成功后，才允许废除操作。
+ * �û���¼�ɹ��󣬲������ϳ�������
  *
- * 后台需校验用户密码
- * 若后台校验PASSWORD失败，返回SMCERTSDK_ERR_USER_PASS
- * 若后台校验PASSWORD成功，才可以继续废弃证书。
+ * ��̨��У���û�����
+ * ����̨У��PASSWORDʧ�ܣ�����SMCERTSDK_ERR_USER_PASS
+ * ����̨У��PASSWORD�ɹ����ſ��Լ�������֤�顣
  *
- * 国密厂商API内需校验PIN（存储于hSDK句柄中），若PIN校验错达到10次，锁定PIN码，返回SMCERTSDK_ERR_PIN_LOCKED错误码
+ * ���ܳ���API����У��PIN���洢��hSDK����У�����PINУ����ﵽ10�Σ�����PIN�룬����SMCERTSDK_ERR_PIN_LOCKED������
  *
- * @param hSDK		[in] SDK句柄
- * @param CertID	[in] 证书唯一标识
- * @return int  成功返回 SMCERTSDK_ERR_NONE
- *              网络IO阻塞返回 SMSSLCERT_ERROR_WANT_READ/SMSSLCERT_ERROR_WANT_WRITE
- *				本地IO阻塞返回 SMCERTSDK_ERR_LOCALRETRY
- *              失败返回错误码
+ * @param hSDK		[in] SDK���
+ * @param CertID	[in] ֤��Ψһ��ʶ
+ * @return int  �ɹ����� SMCERTSDK_ERR_NONE
+ *              ����IO�������� SMSSLCERT_ERROR_WANT_READ/SMSSLCERT_ERROR_WANT_WRITE
+ *				����IO�������� SMCERTSDK_ERR_LOCALRETRY
+ *              ʧ�ܷ��ش�����
  *
  */
 int SMCertSDK_CertRevoke(SMCertSDK_t hSDK, const char *CertID);
 
 
 /**
- * @brief 重置PIN
+ * @brief ����PIN
  *
- * 后台需校验用户密码
- * 若后台校验PASSWORD失败，返回SMCERTSDK_ERR_USER_PASS
- * 若后台校验PASSWORD成功，才可继续重置PIN。
+ * ��̨��У���û�����
+ * ����̨У��PASSWORDʧ�ܣ�����SMCERTSDK_ERR_USER_PASS
+ * ����̨У��PASSWORD�ɹ����ſɼ�������PIN��
  *
- * 不校验旧的PIN，只重置本地证书PIN 
+ * ��У��ɵ�PIN��ֻ���ñ���֤��PIN 
  *
- * @param hSDK		[in] SDK句柄
- * @param NewPIN	[in] 新的PIN码
- * @return int  成功返回 SMCERTSDK_ERR_NONE
- *				PIN码长度小于6位 SMCERTSDK_ERR_PIN_WRONGFORMAT
- *              失败返回错误码
+ * @param hSDK		[in] SDK���
+ * @param NewPIN	[in] �µ�PIN��
+ * @return int  �ɹ����� SMCERTSDK_ERR_NONE
+ *				PIN�볤��С��6λ SMCERTSDK_ERR_PIN_WRONGFORMAT
+ *              ʧ�ܷ��ش�����
  *
  */
 int SMCertSDK_ResetPin(SMCertSDK_t hSDK, const char *NewPIN);
