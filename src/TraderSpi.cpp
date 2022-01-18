@@ -15,11 +15,13 @@
  */
 #include <iomanip>
 #include <format>
+#include <chrono>
 #include "ThostFtdcTraderApi.h"
 #include "TraderSpi.h"
 #include "global.h"
 
 using namespace std;
+using namespace chrono;
 using json = nlohmann::json;
 
 void CTraderSpi::OnFrontConnected() {
@@ -146,22 +148,21 @@ void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFi
     }
     publisher->publish(format("{}OnRspQrySettlementInfoConfirm:{}", CHANNEL_TRADE_DATA, ntos(nRequestID)), root.dump());
     // ConfirmDate = "20160803"
-    long hours = 24;
+    long confirm_hours = 24;
     if (pStruct) {
-        string confirmDate(pStruct->ConfirmDate);
-        string confirmTime(pStruct->ConfirmTime);
-        std::tm tm = {};
-        std::stringstream ss(confirmDate + confirmTime);
-        ss >> std::get_time(&tm, "%Y%m%d%H:%M:%S");
-        auto confirm_date = std::chrono::system_clock::from_time_t(std::mktime(&tm));
-        logger->info("上次结算单确认时间=%v", std::put_time(&tm, "%F %T"));
-        auto now = std::chrono::system_clock::now();
-        hours = std::chrono::duration_cast<std::chrono::hours>(now - confirm_date).count();
+        stringstream in;
+        in << pStruct->ConfirmDate << pStruct->ConfirmTime << "+0800";
+        sys_seconds sys_confirm_date;
+        from_stream(in, "%F%T%z", sys_confirm_date);
+        zoned_time confirm_date(current_zone(), sys_confirm_date);
+        logger->info(format("上次结算单确认时间: {{0:%F %T}}", confirm_date));
+        zoned_time now(current_zone(), floor<seconds>(system_clock::now()));
+        confirm_hours = duration_cast<hours>(now.get_sys_time() - confirm_date.get_sys_time()).count();
         root["empty"] = false;
     } else {
         root["empty"] = true;
     }
-    if (hours >= 24) {
+    if (confirm_hours >= 24) {
         logger->info("查询结算单..");
         shared_ptr<CThostFtdcQrySettlementInfoField> req(new CThostFtdcQrySettlementInfoField);
         strcpy(req->BrokerID, BROKER_ID.c_str());

@@ -16,6 +16,7 @@
 #include <iostream>
 #include <thread>
 #include <format>
+#include <chrono>
 #include "TraderSpi.h"
 #include "MdSpi.h"
 #include "global.h"
@@ -27,35 +28,36 @@
 INITIALIZE_EASYLOGGINGPP // NOLINT
 
 using namespace std;
+using namespace chrono;
 using namespace sw::redis;
 
 int main(int argc, char **argv) {
 #ifdef _WIN32
-    std::filesystem::path config_file = std::filesystem::current_path() / "config.ini";
-    std::string config_path(std::filesystem::current_path().string());
+    filesystem::path config_file = filesystem::current_path() / "config.ini";
+    string config_path(filesystem::current_path().string());
     cout << format("config-file: {}\\config.ini", config_path) << endl;
-    std::string& log_path = config_path;
+    string& log_path = config_path;
     cout << format("log-file: {}\\backend-ctp.log", log_path) << endl;
-    std::string& md_path = config_path;
-    std::string& trade_path = config_path;
-    std::ifstream 	ifs(config_file.string());
+    string& md_path = config_path;
+    string& trade_path = config_path;
+    ifstream ifs(config_file.string());
 #else
-    std::string home_str(getenv("HOME"));
-    std::string config_path = home_str + "/.config/backend-ctp/config.ini";
-    std::string log_path = home_str + "/.cache/backend-ctp/log";
-    std::string md_path = home_str + "/.cache/backend-ctp/md/";
-    std::string trade_path = home_str + "/.cache/backend-ctp/trade/";
+    string home_str(getenv("HOME"));
+    string config_path = home_str + "/.config/backend-ctp/config.ini";
+    string log_path = home_str + "/.cache/backend-ctp/log";
+    string md_path = home_str + "/.cache/backend-ctp/md/";
+    string trade_path = home_str + "/.cache/backend-ctp/trade/";
     mkdir( log_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
     mkdir( md_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
     mkdir( trade_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
     cout << format("config-file: {}", config_path) << endl;
     cout << format("log-file: {}/backend-ctp.log", log_path) << endl;
-    std::ifstream 	ifs(config_path);
+    ifstream ifs(config_path);
 #endif
-    std::string 	line, key, split, val;
-    std::map<std::string, std::string> config;
-    while ( std::getline(ifs, line) )
-        if (std::stringstream(line) >> key >> split >> val && key[0] != ';' && split == "=")
+    string line, key, split, val;
+    map<string, string> config;
+    while ( getline(ifs, line) )
+        if (stringstream(line) >> key >> split >> val && key[0] != ';' && split == "=")
             config[key] = val;
 
     #if defined(__linux__)
@@ -64,19 +66,18 @@ int main(int argc, char **argv) {
 
     el::Configurations defaultConf;
     defaultConf.setToDefault();
-    defaultConf.setGlobally( el::ConfigurationType::Format,
-                             "%datetime{%Y-%M-%d %H:%m:%s.%g} (%thread) [%level] %msg" );
+    defaultConf.setGlobally( el::ConfigurationType::Format, "%datetime{%Y-%M-%d %H:%m:%s.%g} (%thread) [%level] %msg" );
     defaultConf.setGlobally( el::ConfigurationType::Filename, log_path + "/backend-ctp.log" );
     defaultConf.setGlobally( el::ConfigurationType::MaxLogFileSize, "2097152" );
     defaultConf.setGlobally( el::ConfigurationType::ToStandardOutput, "0" );
     el::Loggers::reconfigureLogger("default", defaultConf);
     logger = el::Loggers::getLogger("default");
     el::Helpers::setThreadName("main");
-    logger->info("服务重新启动，连接 redis %v:%v", config["host"], std::stoi( config["port"] ));
+    logger->info("服务重新启动，连接 redis %v:%v", config["host"], stoi( config["port"] ));
     ConnectionOptions connection_options;
     connection_options.host = config["host"];
-    connection_options.port = std::stoi( config["port"] );
-    connection_options.db = std::stoi( config["db"] );
+    connection_options.port = stoi( config["port"] );
+    connection_options.db = stoi( config["db"] );
     cout << "connect to redis...";
     Redis new_pub = Redis(connection_options);
     publisher = &new_pub;
@@ -91,9 +92,10 @@ int main(int argc, char **argv) {
     IP_ADDRESS = config["ip"];
     MAC_ADDRESS = config["mac"];
     logger->info("连接交易服务器..");
-    auto tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    auto tm = *localtime(&tt);
-    auto now = tm.tm_hour * 100 + tm.tm_min;
+    zoned_time time_now(current_zone(), floor<seconds>(system_clock::now()));
+    auto tp = time_now.get_local_time();
+    hh_mm_ss time_mhs{floor<seconds>(tp-floor<days>(tp))};
+    auto now = time_mhs.hours().count() * 100 + time_mhs.minutes().count();
     pTraderApi = CThostFtdcTraderApi::CreateFtdcTraderApi( trade_path.c_str() );   // 创建TradeApi
     auto *pTraderSpi = new CTraderSpi();
     pTraderApi->RegisterSpi(pTraderSpi);                                           // 注册事件类
@@ -101,13 +103,11 @@ int main(int argc, char **argv) {
     pTraderApi->SubscribePrivateTopic(THOST_TERT_QUICK);               // 注册私有流
     if ( (now >= 845 && now <= 1520) || (now >= 2045 && now <= 2359) ) {
         pTraderApi->RegisterFront( (char *) config["trade"].c_str() );     // connect
-        logger->info("当前时间：%v-%v-%v %v:%v:%v 连接正常交易网关",
-                     tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+        logger->info(format("当前时间：{0:%F %T} 连接正常交易网关", time_now));
     }
     else {
         pTraderApi->RegisterFront( (char *) config["trade_off"].c_str() ); // connect
-        logger->info("当前时间：%v-%v-%v %v:%v:%v 连接离线查询网关",
-                     tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+        logger->info(format("当前时间：{0:%F %T} 连接离线查询网关", time_now));
     }
     logger->info("连接行情服务器..");
     pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( md_path.c_str() );      // 创建MdApi
@@ -119,21 +119,21 @@ int main(int argc, char **argv) {
         pMdApi->RegisterFront( (char *) config["market_off"].c_str() );    // connect
 
     logger->info("开启命令处理线程..");
-    std::thread command_handler(handle_command);
+    thread command_handler(handle_command);
     subscriber.psubscribe(CHANNEL_REQ_PATTERN);
     subscriber.on_pmessage(handle_req_request);
 
     pTraderApi->Init();
     pMdApi->Init();
 
-    std::thread([connection_options] {
+    thread([connection_options] {
         Redis beater = Redis(connection_options);
         while ( keep_running ) {
             beater.setex("HEARTBEAT:BACKEND_CTP", 61, "1");
-            std::this_thread::sleep_for(std::chrono::seconds(60));
+            this_thread::sleep_for(chrono::seconds(60));
         }
     }).detach();
-    std::thread([&subscriber] {
+    thread([&subscriber] {
         el::Helpers::setThreadName("redis");
         while (keep_running) subscriber.consume();
     }).detach();
