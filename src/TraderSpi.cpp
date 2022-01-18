@@ -14,13 +14,20 @@
  * limitations under the License.
  */
 #include <iomanip>
+#if defined(__linux__)
+#include <fmt/core.h>
+#elif defined(_WIN32)
 #include <format>
+#endif
 #include <chrono>
 #include "ThostFtdcTraderApi.h"
 #include "TraderSpi.h"
 #include "global.h"
 
 using namespace std;
+#if defined(__linux__)
+using namespace fmt;
+#endif
 using namespace chrono;
 using json = nlohmann::json;
 
@@ -150,6 +157,17 @@ void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFi
     // ConfirmDate = "20160803"
     long confirm_hours = 24;
     if (pStruct) {
+#if defined(__linux__)
+        string confirmDate(pStruct->ConfirmDate);
+        string confirmTime(pStruct->ConfirmTime);
+        std::tm tm = {};
+        std::stringstream ss(confirmDate + confirmTime);
+        ss >> std::get_time(&tm, "%Y%m%d%H:%M:%S");
+        auto confirm_date = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+        logger->info("上次结算单确认时间=%v", std::put_time(&tm, "%F %T"));
+        auto now = std::chrono::system_clock::now();
+        confirm_hours = std::chrono::duration_cast<std::chrono::hours>(now - confirm_date).count();
+#else
         stringstream in;
         in << pStruct->ConfirmDate << pStruct->ConfirmTime << "+0800";
         sys_seconds sys_confirm_date;
@@ -158,6 +176,7 @@ void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFi
         logger->info(format("上次结算单确认时间: {{0:%F %T}}", confirm_date));
         zoned_time now(current_zone(), floor<seconds>(system_clock::now()));
         confirm_hours = duration_cast<hours>(now.get_sys_time() - confirm_date.get_sys_time()).count();
+#endif
         root["empty"] = false;
     } else {
         root["empty"] = true;

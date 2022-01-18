@@ -15,19 +15,22 @@
  */
 #include <iostream>
 #include <thread>
-#include <format>
-#include <chrono>
 #include "TraderSpi.h"
 #include "MdSpi.h"
 #include "global.h"
 #if defined(__linux__)
 #include <unistd.h>
+#include <fmt/core.h>
 #elif defined(_WIN32)
 #include <filesystem>
+#include <format>
 #endif
+#include <chrono>
 INITIALIZE_EASYLOGGINGPP // NOLINT
-
 using namespace std;
+#if defined(__linux__)
+using namespace fmt;
+#endif
 using namespace chrono;
 using namespace sw::redis;
 
@@ -92,10 +95,16 @@ int main(int argc, char **argv) {
     IP_ADDRESS = config["ip"];
     MAC_ADDRESS = config["mac"];
     logger->info("连接交易服务器..");
+#if defined(__linux__)
+    auto tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    auto tm = *localtime(&tt);
+    auto now = tm.tm_hour * 100 + tm.tm_min;
+#else
     zoned_time time_now(current_zone(), floor<seconds>(system_clock::now()));
     auto tp = time_now.get_local_time();
     hh_mm_ss time_mhs{floor<seconds>(tp-floor<days>(tp))};
     auto now = time_mhs.hours().count() * 100 + time_mhs.minutes().count();
+#endif
     pTraderApi = CThostFtdcTraderApi::CreateFtdcTraderApi( trade_path.c_str() );   // 创建TradeApi
     auto *pTraderSpi = new CTraderSpi();
     pTraderApi->RegisterSpi(pTraderSpi);                                           // 注册事件类
@@ -103,11 +112,21 @@ int main(int argc, char **argv) {
     pTraderApi->SubscribePrivateTopic(THOST_TERT_QUICK);               // 注册私有流
     if ( (now >= 845 && now <= 1520) || (now >= 2045 && now <= 2359) ) {
         pTraderApi->RegisterFront( (char *) config["trade"].c_str() );     // connect
+#if defined(__linux__)
+        logger->info("当前时间：%v-%v-%v %v:%v:%v 连接离线查询网关",
+                     tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+#else
         logger->info(format("当前时间：{0:%F %T} 连接正常交易网关", time_now));
+#endif
     }
     else {
         pTraderApi->RegisterFront( (char *) config["trade_off"].c_str() ); // connect
+#if defined(__linux__)
+        logger->info("当前时间：%v-%v-%v %v:%v:%v 连接离线查询网关",
+                     tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+#else
         logger->info(format("当前时间：{0:%F %T} 连接离线查询网关", time_now));
+#endif
     }
     logger->info("连接行情服务器..");
     pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( md_path.c_str() );      // 创建MdApi
@@ -130,7 +149,7 @@ int main(int argc, char **argv) {
         Redis beater = Redis(connection_options);
         while ( keep_running ) {
             beater.setex("HEARTBEAT:BACKEND_CTP", 61, "1");
-            this_thread::sleep_for(chrono::seconds(60));
+            this_thread::sleep_for(seconds(60));
         }
     }).detach();
     thread([&subscriber] {

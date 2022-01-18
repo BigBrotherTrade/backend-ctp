@@ -13,11 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#if defined(__linux__)
+#include <fmt/core.h>
+#elif defined(_WIN32)
 #include <format>
+#endif
 #include "MdSpi.h"
 #include "global.h"
 
 using namespace std;
+#if defined(__linux__)
+using namespace fmt;
+#endif
 using json = nlohmann::json;
 
 void CMdSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo,
@@ -30,13 +37,13 @@ void CMdSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo,
 }
 
 void CMdSpi::OnFrontDisconnected(int nReason) {
-    publisher->publish(format("{}OnFrontDisconnected:{}", CHANNEL_MARKET_DATA), ntos(nReason));
+    publisher->publish(format("{}OnFrontDisconnected", CHANNEL_MARKET_DATA), ntos(nReason));
     market_login = false;
     el::Helpers::setThreadName("market");
 }
 
 void CMdSpi::OnHeartBeatWarning(int nTimeLapse) {
-    publisher->publish(format("{}OnHeartBeatWarning:{}", CHANNEL_MARKET_DATA), ntos(nTimeLapse));
+    publisher->publish(format("{}OnHeartBeatWarning", CHANNEL_MARKET_DATA), ntos(nTimeLapse));
 }
 
 void CMdSpi::OnFrontConnected() {
