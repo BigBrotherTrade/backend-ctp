@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
     if ( (now >= 845 && now <= 1520) || (now >= 2045 && now <= 2359) ) {
         pTraderApi->RegisterFront( (char *) config["trade"].c_str() );     // connect
 #if defined(__linux__)
-        logger->info("当前时间：%v-%v-%v %v:%v:%v 连接离线查询网关",
+        logger->info("当前时间：%v-%v-%v %v:%v:%v 连接正常交易网关",
                      tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 #else
         logger->info(format("当前时间：{0:%F %T} 连接正常交易网关", time_now));

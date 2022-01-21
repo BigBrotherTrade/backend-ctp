@@ -58,7 +58,6 @@ bool market_login(false);
 mutex mut;
 condition_variable check_cmd;
 queue<pair<string, json> > cmd_queue;
-map<string, function<int(const json &)> > req_func;
 
 #if defined(__linux__)
 int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destlen) {
@@ -388,7 +387,7 @@ void handle_req_request(std::string pattern, std::string channel, std::string ms
     }
     std::lock_guard<std::mutex> lk(mut);
     cmd_queue.emplace(request_type, json_msg);
-    if ( request_type.find_first_of("Subscribe") != std::string::npos )
+    if ( request_type.starts_with("Subscribe") )
         logger->info("queue_size: %v, cmd: %v", cmd_queue.size(), request_type);
     else
         logger->info("queue_size: %v, cmd: %v, msg: %v", cmd_queue.size(), request_type, msg);
@@ -396,6 +395,7 @@ void handle_req_request(std::string pattern, std::string channel, std::string ms
 }
 
 void handle_command() {
+    map<string, function<int(const json &)> > req_func;
     req_func["IsMarketLogin"] = &IsMarketLogin;
     req_func["IsTradeLogin"] = &IsTradeLogin;
     req_func["MarketReqUserLogin"] = &MarketReqUserLogin;
@@ -427,7 +427,7 @@ void handle_command() {
                 if ( cmd_queue.empty() )
                     return false;
                 // 新命令是交易类命令， 直接执行
-                if ( cmd_queue.front().first.find_first_of("ReqQry") == std::string::npos )
+                if ( cmd_queue.front().first.starts_with("ReqQry") )
                     return true;
                 // 上一次的查询命令执行完毕，可以执行新查询
                 if ( query_finished )
@@ -445,14 +445,14 @@ void handle_command() {
             continue;
         }
         // 查询类接口调用频率限制为1秒一次
-        if ( cmd_pair.first.find_first_of("ReqQry") != std::string::npos ) {
+        if ( cmd_pair.first.starts_with("ReqQry") ) {
             std::this_thread::sleep_until(start + std::chrono::milliseconds(1000));
             start = std::chrono::high_resolution_clock::now();
             query_finished = false;
         } else {
             query_finished = true;
         }
-        if ( cmd_pair.first.find_first_of("Subscribe") != std::string::npos )
+        if ( cmd_pair.first.starts_with("Subscribe") )
             logger->info("发送命令 %v", cmd_pair.first);
         else
             logger->info("发送命令 %v : %v", cmd_pair.first, cmd_pair.second);

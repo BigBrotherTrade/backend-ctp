@@ -919,6 +919,7 @@ void CTraderSpi::OnHeartBeatWarning(int nTimeLapse) {
 }
 
 void CTraderSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+    el::Helpers::setThreadName("trade");
     json root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
