@@ -367,6 +367,51 @@ void CTraderSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommission
     }
 }
 
+void CTraderSpi::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField *pStruct,
+                                         CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+    json root;
+    root["nRequestID"] = nRequestID;
+    root["bIsLast"] = bIsLast;
+    root["ErrorID"] = 0;
+
+    if (pRspInfo && pRspInfo->ErrorID != 0) {
+        root["ErrorID"] = pRspInfo->ErrorID;
+    } else if (pStruct) {
+        root["TradingDay"] = pStruct->TradingDay;
+        root["InstrumentID"] = pStruct->InstrumentID;
+        root["LastPrice"] = pStruct->LastPrice;
+        root["PreSettlementPrice"] = pStruct->PreSettlementPrice;
+        root["PreClosePrice"] = pStruct->PreClosePrice;
+        root["PreOpenInterest"] = pStruct->PreOpenInterest;
+        root["OpenPrice"] = pStruct->OpenPrice;
+        root["HighestPrice"] = pStruct->HighestPrice;
+        root["LowestPrice"] = pStruct->LowestPrice;
+        root["Volume"] = pStruct->Volume;
+        root["Turnover"] = pStruct->Turnover;
+        root["OpenInterest"] = pStruct->OpenInterest;
+        root["ClosePrice"] = pStruct->ClosePrice;
+        root["SettlementPrice"] = pStruct->SettlementPrice;
+        root["UpperLimitPrice"] = pStruct->UpperLimitPrice;
+        root["LowerLimitPrice"] = pStruct->LowerLimitPrice;
+        root["UpdateMillisec"] = pStruct->UpdateMillisec;
+        root["BidPrice1"] = pStruct->BidPrice1;
+        root["BidVolume1"] = pStruct->BidVolume1;
+        root["AskPrice1"] = pStruct->AskPrice1;
+        root["AskVolume1"] = pStruct->AskVolume1;
+        root["AveragePrice"] = pStruct->AveragePrice;
+        root["ActionDay"] = pStruct->ActionDay;
+        root["UpdateTime"] = pStruct->UpdateTime;
+        root["empty"] = false;
+    } else {
+        root["empty"] = true;
+    }
+    publisher->publish(format("{}OnRspQryDepthMarketData:{}", CHANNEL_TRADE_DATA, ntos(nRequestID)), root.dump());
+    if (bIsLast && nRequestID == iTradeRequestID) {
+        query_finished = true;
+        check_cmd.notify_all();
+    }
+}
+
 void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pStruct,
                                         CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
     json root;

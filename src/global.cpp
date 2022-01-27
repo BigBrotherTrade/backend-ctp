@@ -294,6 +294,9 @@ int ReqQryInstrumentMarginRate(const json &root) {
         if (root.contains("InstrumentID")) {
             strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
         }
+        strcpy(req.BrokerID, BROKER_ID.c_str());
+        strcpy(req.InvestorID, INVESTOR_ID.c_str());
+        req.HedgeFlag = THOST_FTDC_HF_Speculation;
         iTradeRequestID = root["RequestID"].get<int>();
         return pTraderApi->ReqQryInstrumentMarginRate(&req, iTradeRequestID);
     } catch (json::exception &e) {
@@ -375,6 +378,19 @@ int ReqQryTrade(const json &root) {
     }
 }
 
+int ReqQryDepthMarketData(const json &root) {
+    try {
+        CThostFtdcQryDepthMarketDataField req{};
+        strcpy(req.ExchangeID, root["ExchangeID"].get<string>().c_str());
+        strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
+        iTradeRequestID = root["RequestID"].get<int>();
+        return pTraderApi->ReqQryDepthMarketData(&req, iTradeRequestID);
+    } catch (json::exception &e) {
+        logger->error("ReqQryDepthMarketData failed: %v", e.what());
+        return ERROR_RESULT;
+    }
+}
+
 void handle_req_request(std::string pattern, std::string channel, std::string msg) {
     auto request_type = channel.substr(channel.find_last_of(':') + 1);
     json json_msg;
@@ -414,6 +430,7 @@ void handle_command() {
     req_func["ReqQryInvestorPositionDetail"] = &ReqQryInvestorPositionDetail;
     req_func["ReqQryOrder"] = &ReqQryOrder;
     req_func["ReqQryTrade"] = &ReqQryTrade;
+    req_func["ReqQryDepthMarketData"] = &ReqQryDepthMarketData;
 
     query_finished = true;
     auto start = std::chrono::high_resolution_clock::now();
