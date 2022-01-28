@@ -34,7 +34,7 @@ using namespace fmt;
 using namespace chrono;
 using namespace sw::redis;
 
-int main(int argc, char **argv) {
+int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
 #ifdef _WIN32
     filesystem::path config_file = filesystem::current_path() / "config.ini";
     string config_path(filesystem::current_path().string());

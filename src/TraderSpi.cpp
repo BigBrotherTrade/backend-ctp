@@ -32,7 +32,7 @@ using namespace chrono;
 using json = nlohmann::json;
 
 void CTraderSpi::OnFrontConnected() {
-    publisher->publish(CHANNEL_TRADE_DATA + "OnFrontConnected", "OnFrontConnected");
+    publisher->publish(format("{}OnFrontConnected", CHANNEL_TRADE_DATA), "OnFrontConnected");
     shared_ptr<CThostFtdcReqAuthenticateField> req(new CThostFtdcReqAuthenticateField);
     strcpy(req->BrokerID, BROKER_ID.c_str());
     strcpy(req->UserID, INVESTOR_ID.c_str());
@@ -108,7 +108,7 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pStruct,
     } else {
         root["empty"] = true;
     }
-    publisher->publish(CHANNEL_TRADE_DATA + "OnRspUserLogin:" + ntos(nRequestID), root.dump());
+    publisher->publish(format("{}OnRspUserLogin:{}", CHANNEL_TRADE_DATA, ntos(nRequestID)), root.dump());
     auto trading_day = root["TradingDay"].get<string>();
     if ( !trading_day.empty() ) {
         string last_day1, last_day2;
@@ -160,13 +160,13 @@ void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFi
 #if defined(__linux__)
         string confirmDate(pStruct->ConfirmDate);
         string confirmTime(pStruct->ConfirmTime);
-        std::tm tm = {};
-        std::stringstream ss(confirmDate + confirmTime);
-        ss >> std::get_time(&tm, "%Y%m%d%H:%M:%S");
-        auto confirm_date = std::chrono::system_clock::from_time_t(std::mktime(&tm));
-        logger->info("上次结算单确认时间=%v", std::put_time(&tm, "%F %T"));
-        auto now = std::chrono::system_clock::now();
-        confirm_hours = std::chrono::duration_cast<std::chrono::hours>(now - confirm_date).count();
+        tm tm = {};
+        stringstream ss(confirmDate + confirmTime);
+        ss >> get_time(&tm, "%Y%m%d%H:%M:%S");
+        auto confirm_date = system_clock::from_time_t(mktime(&tm));
+        logger->info("上次结算单确认时间=%v", put_time(&tm, "%F %T"));
+        auto now = system_clock::now();
+        confirm_hours = duration_cast<hours>(now - confirm_date).count();
 #else
         stringstream in;
         in << pStruct->ConfirmDate << pStruct->ConfirmTime << "+0800";
@@ -191,7 +191,7 @@ void CTraderSpi::OnRspQrySettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFi
     }
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
-        check_cmd.notify_all();
+        getCond().notify_all();
     }
 }
 
@@ -225,7 +225,7 @@ void CTraderSpi::OnRspQrySettlementInfo(CThostFtdcSettlementInfoField *pStruct,
     pTraderApi->ReqSettlementInfoConfirm(req.get(), nRequestID + 1);
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
-        check_cmd.notify_all();
+        getCond().notify_all();
     }
 }
 
@@ -301,7 +301,7 @@ void CTraderSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pStruct, CThostFt
     publisher->publish(format("{}OnRspQryInstrument:{}", CHANNEL_TRADE_DATA, ntos(nRequestID)), root.dump());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
-        check_cmd.notify_all();
+        getCond().notify_all();
     }
 }
 
@@ -332,7 +332,7 @@ void CTraderSpi::OnRspQryInstrumentMarginRate(CThostFtdcInstrumentMarginRateFiel
     publisher->publish(format("{}OnRspQryInstrumentMarginRate:{}", CHANNEL_TRADE_DATA, ntos(nRequestID)), root.dump());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
-        check_cmd.notify_all();
+        getCond().notify_all();
     }
 }
 
@@ -363,7 +363,7 @@ void CTraderSpi::OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommission
     publisher->publish(format("{}OnRspQryInstrumentCommissionRate:{}", CHANNEL_TRADE_DATA, ntos(nRequestID)), root.dump());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
-        check_cmd.notify_all();
+        getCond().notify_all();
     }
 }
 
@@ -408,7 +408,7 @@ void CTraderSpi::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField *pStruct
     publisher->publish(format("{}OnRspQryDepthMarketData:{}", CHANNEL_TRADE_DATA, ntos(nRequestID)), root.dump());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
-        check_cmd.notify_all();
+        getCond().notify_all();
     }
 }
 
@@ -475,7 +475,7 @@ void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pStruct,
     publisher->publish(format("{}OnRspQryTradingAccount:{}", CHANNEL_TRADE_DATA, ntos(nRequestID)), root.dump());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
-        check_cmd.notify_all();
+        getCond().notify_all();
     }
 }
 
@@ -539,7 +539,7 @@ void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pStru
     publisher->publish(format("{}OnRspQryInvestorPosition:{}", CHANNEL_TRADE_DATA, ntos(nRequestID)), root.dump());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
-        check_cmd.notify_all();
+        getCond().notify_all();
     }
 }
 
@@ -586,7 +586,7 @@ void CTraderSpi::OnRspQryInvestorPositionDetail(CThostFtdcInvestorPositionDetail
     publisher->publish(format("{}OnRspQryInvestorPositionDetail:{}", CHANNEL_TRADE_DATA, ntos(nRequestID)), root.dump());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
-        check_cmd.notify_all();
+        getCond().notify_all();
     }
 }
 
@@ -764,7 +764,7 @@ void CTraderSpi::OnRspQryOrder(CThostFtdcOrderField *pStruct, CThostFtdcRspInfoF
     publisher->publish(format("{}OnRspQryOrder:{}", CHANNEL_TRADE_DATA, ntos(nRequestID)), msg_str);
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
-        check_cmd.notify_all();
+        getCond().notify_all();
     }
 }
 
@@ -817,7 +817,7 @@ void CTraderSpi::OnRspQryTrade(CThostFtdcTradeField *pStruct, CThostFtdcRspInfoF
     publisher->publish(format("{}OnRspQryTrade:{}", CHANNEL_TRADE_DATA, ntos(nRequestID)), root.dump());
     if (bIsLast && nRequestID == iTradeRequestID) {
         query_finished = true;
-        check_cmd.notify_all();
+        getCond().notify_all();
     }
 }
 
@@ -955,12 +955,12 @@ void CTraderSpi::OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField *pStruct)
 }
 
 void CTraderSpi::OnFrontDisconnected(int nReason) {
-    publisher->publish(CHANNEL_TRADE_DATA + "OnFrontDisconnected", ntos(nReason));
+    publisher->publish(format("{}OnFrontDisconnected", CHANNEL_TRADE_DATA), ntos(nReason));
     trade_login = false;
 }
 
 void CTraderSpi::OnHeartBeatWarning(int nTimeLapse) {
-    publisher->publish(CHANNEL_TRADE_DATA + "OnHeartBeatWarning", ntos(nTimeLapse));
+    publisher->publish(format("{}OnHeartBeatWarning", CHANNEL_TRADE_DATA), ntos(nTimeLapse));
 }
 
 void CTraderSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
@@ -972,6 +972,6 @@ void CTraderSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bo
     auto msg_str = root.dump();
     publisher->publish(format("{}OnRspError:{}", CHANNEL_TRADE_DATA, ntos(nRequestID)), msg_str);
     query_finished = true;
-    check_cmd.notify_all();
+    getCond().notify_all();
     logger->info("OnRspError：%v", msg_str);
 }

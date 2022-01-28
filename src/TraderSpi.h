@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 #pragma once
-
 #include "ThostFtdcTraderApi.h"
 
 class CTraderSpi : public CThostFtdcTraderSpi {

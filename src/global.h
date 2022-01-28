@@ -15,7 +15,10 @@
  */
 #pragma once
 #include <cstring>
+#pragma warning( push )
+#pragma warning( disable : 4200 )  // 移除MSVC编译器警告
 #include <sw/redis++/redis++.h>
+#pragma warning( pop )
 #include <ThostFtdcTraderApi.h>
 #include <ThostFtdcMdApi.h>
 #define JSON_HAS_CPP_17 1
@@ -23,10 +26,9 @@
 #include "json.hpp"
 #include "easylogging++.h"
 
-static const std::string CHANNEL_REQ_PATTERN = "MSG:CTP:REQ:*"; // 监听req命令
-static const std::string CHANNEL_TRADE_DATA = "MSG:CTP:RSP:TRADE:";  // trade回调通知
-static const std::string CHANNEL_MARKET_DATA = "MSG:CTP:RSP:MARKET:";// md回调数据
-static const std::string HASHSET_TICK = "TICK:";// tick数据
+#define CHANNEL_REQ_PATTERN "MSG:CTP:REQ:*"         // 监听req命令
+#define CHANNEL_TRADE_DATA  "MSG:CTP:RSP:TRADE:"    // trade回调通知
+#define CHANNEL_MARKET_DATA "MSG:CTP:RSP:MARKET:"   // md回调数据
 
 extern el::Logger* logger;
 extern sw::redis::Redis* publisher;
@@ -51,12 +53,12 @@ extern bool query_finished;
 extern bool keep_running;
 extern bool trade_login;
 extern bool market_login;
-extern std::condition_variable check_cmd;
 
-extern void handle_req_request(std::string pattern, std::string channel, std::string msg);
+extern void handle_req_request([[maybe_unused]] std::string pattern, std::string channel, std::string msg);
 
-int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destlen);
+int gb2312toutf8(char *sourcebuf, [[maybe_unused]] size_t sourcelen, char *destbuf, size_t destlen);
 
 std::string ntos(int n);
 
 void handle_command();
+std::condition_variable& getCond();

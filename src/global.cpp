@@ -55,10 +55,6 @@ bool keep_running(true);
 bool trade_login(false);
 bool market_login(false);
 
-mutex mut;
-condition_variable check_cmd;
-queue<pair<string, json> > cmd_queue;
-
 #if defined(__linux__)
 int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destlen) {
     iconv_t cd;
@@ -72,7 +68,7 @@ int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destle
     return 0;
 }
 #elif defined(_WIN32)
-int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destlen) {
+int gb2312toutf8(char *sourcebuf, [[maybe_unused]] size_t sourcelen, char *destbuf, [[maybe_unused]] size_t destlen) {
     int len = MultiByteToWideChar(CP_ACP, 0, sourcebuf, -1, nullptr, 0);
     auto* wstr = new wchar_t[len+1];
     memset(wstr, 0, len+1);
@@ -84,8 +80,8 @@ int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destle
 }
 #endif
 
-std::string ntos(int n) {
-    std::stringstream newstr;
+string ntos(int n) {
+    stringstream newstr;
     newstr << n;
     return newstr.str();
 }
@@ -391,7 +387,12 @@ int ReqQryDepthMarketData(const json &root) {
     }
 }
 
-void handle_req_request(std::string pattern, std::string channel, std::string msg) {
+mutex mut;
+typedef queue<pair<string, json> > CmdQueue;
+CmdQueue& getQueue() { static CmdQueue cmd_queue; return cmd_queue; }
+condition_variable& getCond() { static condition_variable check_cmd; return check_cmd; }
+
+void handle_req_request([[maybe_unused]] string pattern, string channel, string msg) {
     auto request_type = channel.substr(channel.find_last_of(':') + 1);
     json json_msg;
     try {
@@ -401,13 +402,14 @@ void handle_req_request(std::string pattern, std::string channel, std::string ms
         logger->error("handle_req_request failed: %v", e.what());
         return;
     }
-    std::lock_guard<std::mutex> lk(mut);
+    lock_guard<mutex> lk(mut);
+    CmdQueue& cmd_queue = getQueue();
     cmd_queue.emplace(request_type, json_msg);
     if ( request_type.starts_with("Subscribe") )
         logger->info("queue_size: %v, cmd: %v", cmd_queue.size(), request_type);
     else
         logger->info("queue_size: %v, cmd: %v, msg: %v", cmd_queue.size(), request_type, msg);
-    check_cmd.notify_all();
+    getCond().notify_all();
 }
 
 void handle_command() {
@@ -433,13 +435,14 @@ void handle_command() {
     req_func["ReqQryDepthMarketData"] = &ReqQryDepthMarketData;
 
     query_finished = true;
-    auto start = std::chrono::high_resolution_clock::now();
+    auto start = high_resolution_clock::now();
     el::Helpers::setThreadName("command");
     logger->info("命令处理线程已启动.");
+    CmdQueue& cmd_queue = getQueue();
     while ( keep_running ) {
         if ( cmd_queue.empty() ) {
-            std::unique_lock< std::mutex > lk( mut );
-            bool wait_rst = check_cmd.wait_for(lk, std::chrono::seconds(1), [ start ] {
+            unique_lock< mutex > lk( mut );
+            bool wait_rst = getCond().wait_for(lk, seconds(1), [ start , &cmd_queue] {
                 // 没有新命令
                 if ( cmd_queue.empty() )
                     return false;
@@ -450,7 +453,7 @@ void handle_command() {
                 if ( query_finished )
                     return true;
                 // 上一次的查询命令执行超时，可以执行新查询
-                return std::chrono::high_resolution_clock::now() - start > std::chrono::seconds(30);
+                return high_resolution_clock::now() - start > seconds(30);
             });
             if ( ! wait_rst ) continue;
         }
@@ -463,8 +466,8 @@ void handle_command() {
         }
         // 查询类接口调用频率限制为1秒一次
         if ( cmd_pair.first.starts_with("ReqQry") ) {
-            std::this_thread::sleep_until(start + std::chrono::milliseconds(1000));
-            start = std::chrono::high_resolution_clock::now();
+            this_thread::sleep_until(start + milliseconds(1000));
+            start = high_resolution_clock::now();
             query_finished = false;
         } else {
             query_finished = true;
