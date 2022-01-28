@@ -95,47 +95,17 @@ int main(int argc, char **argv) {
     IP_ADDRESS = config["ip"];
     MAC_ADDRESS = config["mac"];
     logger->info("连接交易服务器..");
-#if defined(__linux__)
-    auto tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    auto tm = *localtime(&tt);
-    auto now = tm.tm_hour * 100 + tm.tm_min;
-#else
-    zoned_time time_now(current_zone(), floor<seconds>(system_clock::now()));
-    auto tp = time_now.get_local_time();
-    hh_mm_ss time_mhs{floor<seconds>(tp-floor<days>(tp))};
-    auto now = time_mhs.hours().count() * 100 + time_mhs.minutes().count();
-#endif
     pTraderApi = CThostFtdcTraderApi::CreateFtdcTraderApi( trade_path.c_str() );   // 创建TradeApi
     auto *pTraderSpi = new CTraderSpi();
     pTraderApi->RegisterSpi(pTraderSpi);                                           // 注册事件类
     pTraderApi->SubscribePublicTopic(THOST_TERT_QUICK);                // 注册公有流
     pTraderApi->SubscribePrivateTopic(THOST_TERT_QUICK);               // 注册私有流
-    if ( (now >= 840 && now <= 1550) || (now >= 2010 && now <= 2359) ) {
-        pTraderApi->RegisterFront( (char *) config["trade"].c_str() );     // connect
-#if defined(__linux__)
-        logger->info("当前时间：%v-%v-%v %v:%v:%v 连接正常交易网关",
-                     tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-#else
-        logger->info(format("当前时间：{0:%F %T} 连接正常交易网关", time_now));
-#endif
-    }
-    else {
-        pTraderApi->RegisterFront( (char *) config["trade_off"].c_str() ); // connect
-#if defined(__linux__)
-        logger->info("当前时间：%v-%v-%v %v:%v:%v 连接离线查询网关",
-                     tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-#else
-        logger->info(format("当前时间：{0:%F %T} 连接离线查询网关", time_now));
-#endif
-    }
+    pTraderApi->RegisterFront( (char *) config["trade"].c_str() );     // connect
     logger->info("连接行情服务器..");
     pMdApi = CThostFtdcMdApi::CreateFtdcMdApi( md_path.c_str() );      // 创建MdApi
     CThostFtdcMdSpi *pMdSpi = new CMdSpi();
     pMdApi->RegisterSpi(pMdSpi);                                       // 注册事件类
-    if ( (now >= 840 && now <= 1550) || (now >= 2010 && now <= 2359) )
-        pMdApi->RegisterFront( (char *) config["market"].c_str() );        // connect
-    else
-        pMdApi->RegisterFront( (char *) config["market_off"].c_str() );    // connect
+    pMdApi->RegisterFront( (char *) config["market"].c_str() );        // connect
 
     logger->info("开启命令处理线程..");
     thread command_handler(handle_command);
