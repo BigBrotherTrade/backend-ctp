@@ -178,17 +178,8 @@ int ReqOrderInsert(const json &root) {
         CThostFtdcInputOrderField req{};
         strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
         req.Direction = root["Direction"].get<string>()[0];
-        strcpy(req.OrderRef, root["OrderRef"].get<string>().c_str());
-        if ( root.contains("LimitPrice") ) {
-            req.LimitPrice = root["LimitPrice"].get<double>();
-        } else {
-            req.LimitPrice = 0;
-        }
-        if (root.contains("StopPrice")) {
-            req.StopPrice = root["StopPrice"].get<double>();
-        } else {
-            req.StopPrice = 0;
-        }
+        strncpy(req.OrderRef, root["OrderRef"].get<string>().c_str(), sizeof(req.OrderRef));
+        req.LimitPrice = root["LimitPrice"].get<double>();
         req.VolumeTotalOriginal = root["VolumeTotalOriginal"].get<int>();
         req.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
         strcpy(req.BrokerID, BROKER_ID.c_str());
@@ -198,10 +189,10 @@ int ReqOrderInsert(const json &root) {
         req.VolumeCondition = THOST_FTDC_VC_AV;
         req.MinVolume = 1;
         req.ForceCloseReason = THOST_FTDC_FCC_NotForceClose;
-        req.ContingentCondition = root["ContingentCondition"].get<string>()[0];
+        req.ContingentCondition = THOST_FTDC_CC_Immediately;
         req.IsAutoSuspend = 1;
         req.UserForceClose = 0;
-        req.TimeCondition = root["TimeCondition"].get<string>()[0];
+        req.TimeCondition = THOST_FTDC_TC_GFD;
         strcpy(req.IPAddress, IP_ADDRESS.c_str());
         strcpy(req.MacAddress, MAC_ADDRESS.c_str());
         iTradeRequestID = root["RequestID"].get<int>();
@@ -217,13 +208,10 @@ int ReqOrderAction(const json &root) {
         CThostFtdcInputOrderActionField req{};
         strcpy(req.BrokerID, BROKER_ID.c_str());
         strcpy(req.InvestorID, INVESTOR_ID.c_str());
-        //    strcpy(req.OrderRef, root["OrderRef"].get<string>().c_str());
         strcpy(req.ExchangeID, root["ExchangeID"].get<string>().c_str());
         strcpy(req.UserID, root["UserID"].get<string>().c_str());
         strcpy(req.InstrumentID, root["InstrumentID"].get<string>().c_str());
         req.OrderActionRef = root["RequestID"].get<int>() + 1;
-        //    req.FrontID = FRONT_ID;
-        //    req.SessionID = SESSION_ID;
         req.ActionFlag = THOST_FTDC_AF_Delete;
         strcpy(req.IPAddress, IP_ADDRESS.c_str());
         strcpy(req.MacAddress, MAC_ADDRESS.c_str());
