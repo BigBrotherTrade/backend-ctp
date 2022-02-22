@@ -1,11 +1,9 @@
 build
-bin
 .idea
-api/win/backend-ctp
-api/linux/backend-ctp
 *.exe
 *.log
 *.pdb
 *.manifest
 *.con
 .vscode
+.vs

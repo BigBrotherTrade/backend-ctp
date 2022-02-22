@@ -76,7 +76,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
     el::Loggers::reconfigureLogger("default", defaultConf);
     logger = el::Loggers::getLogger("default");
     el::Helpers::setThreadName("main");
-    logger->info("服务重新启动，连接 redis %v:%v", config["host"], stoi( config["port"] ));
+    logger->info("服务重新启动,连接 redis %v:%v", config["host"], stoi( config["port"] ));
     ConnectionOptions connection_options;
     connection_options.host = config["host"];
     connection_options.port = stoi( config["port"] );
