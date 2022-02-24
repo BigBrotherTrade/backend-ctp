@@ -14,16 +14,21 @@
  * limitations under the License.
  */
 #include "global.h"
+
 #if defined(__linux__)
 #include <fmt/core.h>
 #include <iconv.h>
 #elif defined(_WIN32)
+
 #include <windows.h>
 #include <format>
+
 #endif
+
 #include <chrono>
 #include <queue>
 #include <thread>
+
 #define ERROR_RESULT -999
 
 using namespace std;
@@ -35,25 +40,37 @@ using json = nlohmann::json;
 
 string MAC_ADDRESS;
 string IP_ADDRESS;
-string BROKER_ID;		// 经纪公司代码
-string INVESTOR_ID;		// 投资者代码
-string PASSWORD;		// 用户密码
-string APPID;	            // appid
-string AUTHCODE;			// 认证码
-string USERINFO;	        // 产品信息
+string BROKER_ID;        // 经纪公司代码
+string INVESTOR_ID;        // 投资者代码
+string PASSWORD;        // 用户密码
+string APPID;                // appid
+string AUTHCODE;            // 认证码
+string USERINFO;            // 产品信息
 TThostFtdcFrontIDType FRONT_ID;             // 前置编号
 TThostFtdcSessionIDType SESSION_ID;         // 会话编号
-CThostFtdcTraderApi* pTraderApi = nullptr;
-CThostFtdcMdApi* pMdApi = nullptr;
-el::Logger* logger = nullptr;
-sw::redis::Redis* publisher = nullptr;
+CThostFtdcTraderApi *pTraderApi = nullptr;
+CThostFtdcMdApi *pMdApi = nullptr;
+el::Logger *logger = nullptr;
+sw::redis::Redis *publisher = nullptr;
 
 int iMarketRequestID(0);
 int iTradeRequestID(0);
 bool query_finished(true);
-bool keep_running(true);
 bool trade_login(false);
 bool market_login(false);
+
+mutex mut;
+typedef queue<pair<string, json> > CmdQueue;
+
+CmdQueue &getQueue() {
+    static CmdQueue cmd_queue;
+    return cmd_queue;
+}
+
+condition_variable &getCond() {
+    static condition_variable check_cmd;
+    return check_cmd;
+}
 
 #if defined(__linux__)
 int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destlen) {
@@ -70,8 +87,8 @@ int gb2312toutf8(char *sourcebuf, size_t sourcelen, char *destbuf, size_t destle
 #elif defined(_WIN32)
 int gb2312toutf8(char *sourcebuf, [[maybe_unused]] size_t sourcelen, char *destbuf, [[maybe_unused]] size_t destlen) {
     int len = MultiByteToWideChar(CP_ACP, 0, sourcebuf, -1, nullptr, 0);
-    auto* wstr = new wchar_t[len+1];
-    memset(wstr, 0, len+1);
+    auto *wstr = new wchar_t[len + 1];
+    memset(wstr, 0, len + 1);
     MultiByteToWideChar(CP_ACP, 0, sourcebuf, -1, wstr, len);
     len = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
     WideCharToMultiByte(CP_UTF8, 0, wstr, -1, destbuf, len, nullptr, nullptr);
@@ -104,7 +121,7 @@ int MarketReqUserLogin(const json &root) {
         strcpy(req.Password, PASSWORD.c_str());
         iMarketRequestID = root["RequestID"].get<int>();
         return pMdApi->ReqUserLogin(&req, iMarketRequestID);
-    } catch (json::exception& e) {
+    } catch (json::exception &e) {
         logger->error("MarketReqUserLogin failed: %v", e.what());
         return ERROR_RESULT;
     }
@@ -375,32 +392,27 @@ int ReqQryDepthMarketData(const json &root) {
     }
 }
 
-mutex mut;
-typedef queue<pair<string, json> > CmdQueue;
-CmdQueue& getQueue() { static CmdQueue cmd_queue; return cmd_queue; }
-condition_variable& getCond() { static condition_variable check_cmd; return check_cmd; }
-
 void handle_req_request([[maybe_unused]] string pattern, string channel, string msg) {
     auto request_type = channel.substr(channel.find_last_of(':') + 1);
     json json_msg;
     try {
         json_msg = json::parse(msg);
         cout << "req=" << json_msg << endl;
-    } catch (json::exception& e) {
+    } catch (json::exception &e) {
         logger->error("handle_req_request failed: %v", e.what());
         return;
     }
     lock_guard<mutex> lk(mut);
-    CmdQueue& cmd_queue = getQueue();
+    CmdQueue &cmd_queue = getQueue();
     cmd_queue.emplace(request_type, json_msg);
-    if ( request_type.starts_with("Subscribe") )
+    if (request_type.starts_with("Subscribe"))
         logger->info("queue_size: %v, cmd: %v", cmd_queue.size(), request_type);
     else
         logger->info("queue_size: %v, cmd: %v, msg: %v", cmd_queue.size(), request_type, msg);
     getCond().notify_all();
 }
 
-void handle_command() {
+void handle_command(std::stop_token stop_token) {
     map<string, function<int(const json &)> > req_func;
     req_func["IsMarketLogin"] = &IsMarketLogin;
     req_func["IsTradeLogin"] = &IsTradeLogin;
@@ -426,56 +438,56 @@ void handle_command() {
     auto start = high_resolution_clock::now();
     el::Helpers::setThreadName("command");
     logger->info("命令处理线程已启动.");
-    CmdQueue& cmd_queue = getQueue();
-    while ( keep_running ) {
-        if ( cmd_queue.empty() ) {
-            unique_lock< mutex > lk( mut );
-            bool wait_rst = getCond().wait_for(lk, seconds(1), [ start , &cmd_queue] {
+    CmdQueue &cmd_queue = getQueue();
+    while (!stop_token.stop_requested()) {
+        if (cmd_queue.empty()) {
+            unique_lock<mutex> lk(mut);
+            bool wait_rst = getCond().wait_for(lk, seconds(1), [start, &cmd_queue] {
                 // 没有新命令
-                if ( cmd_queue.empty() )
+                if (cmd_queue.empty())
                     return false;
                 // 新命令是交易类命令， 直接执行
-                if ( cmd_queue.front().first.starts_with("ReqQry") )
+                if (cmd_queue.front().first.starts_with("ReqQry"))
                     return true;
                 // 上一次的查询命令执行完毕，可以执行新查询
-                if ( query_finished )
+                if (query_finished)
                     return true;
                 // 上一次的查询命令执行超时，可以执行新查询
                 return high_resolution_clock::now() - start > seconds(30);
             });
-            if ( ! wait_rst ) continue;
+            if (!wait_rst) continue;
         }
         auto cmd_pair = cmd_queue.front();
         cmd_queue.pop();
         auto func = req_func.find(cmd_pair.first);
-        if ( func == req_func.end() ) {
+        if (func == req_func.end()) {
             logger->error("can't find req_func=%v", cmd_pair.second);
             continue;
         }
         // 查询类接口调用频率限制为1秒一次
-        if ( cmd_pair.first.starts_with("ReqQry") ) {
+        if (cmd_pair.first.starts_with("ReqQry")) {
             this_thread::sleep_until(start + milliseconds(1000));
             start = high_resolution_clock::now();
             query_finished = false;
         } else {
             query_finished = true;
         }
-        if ( cmd_pair.first.starts_with("Subscribe") )
+        if (cmd_pair.first.starts_with("Subscribe"))
             logger->info("发送命令 %v", cmd_pair.first);
         else
             logger->info("发送命令 %v : %v", cmd_pair.first, cmd_pair.second);
         int iResult = (func->second)(cmd_pair.second);
         json err = "发送成功";
-        if ( iResult == -1 )
+        if (iResult == -1)
             err = "因网络原因发送失败";
-        else if ( iResult == -2 )
+        else if (iResult == -2)
             err = "未处理请求队列总数量超限";
-        else if ( iResult == -3 )
+        else if (iResult == -3)
             err = "每秒发送请求数量超限";
-        else if ( iResult == ERROR_RESULT )
+        else if (iResult == ERROR_RESULT)
             err = "发送失败";
         logger->info("结果: %v", err);
-        if ( iResult != ERROR_RESULT && iResult < 0 ) {
+        if (iResult != ERROR_RESULT && iResult < 0) {
             publisher->publish(
                     format("{}OnRspError:{}", CHANNEL_MARKET_DATA, ntos(cmd_pair.second["RequestID"].get<int>())),
                     cmd_pair.second.dump());

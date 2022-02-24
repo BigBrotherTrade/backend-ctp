@@ -108,28 +108,27 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
     pMdApi->RegisterFront( (char *) config["market"].c_str() );        // connect
 
     logger->info("开启命令处理线程..");
-    thread command_handler(handle_command);
+    jthread command_handler(handle_command);
     subscriber.psubscribe(CHANNEL_REQ_PATTERN);
     subscriber.on_pmessage(handle_req_request);
 
     pTraderApi->Init();
     pMdApi->Init();
 
-    thread([connection_options] {
+    jthread heart_beat([connection_options] (std::stop_token stop_token) {
         Redis beater = Redis(connection_options);
-        while ( keep_running ) {
+        while ( ! stop_token.stop_requested() ) {
             beater.setex("HEARTBEAT:BACKEND_CTP", 61, "1");
             this_thread::sleep_for(seconds(60));
         }
-    }).detach();
-    thread([&subscriber] {
+    });
+    jthread comsume([&subscriber] (std::stop_token stop_token) {
         el::Helpers::setThreadName("redis");
-        while (keep_running) subscriber.consume();
-    }).detach();
+        while ( ! stop_token.stop_requested() ) subscriber.consume();
+    });
     logger->info("服务已启动.");
     pTraderApi->Join();
     pMdApi->Join();
-    keep_running = false;
     command_handler.join();
     logger->info("服务已退出.");
     return 0;
