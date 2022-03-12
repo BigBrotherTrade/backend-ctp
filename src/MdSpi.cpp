@@ -27,23 +27,22 @@ using namespace fmt;
 #endif
 using json = nlohmann::json;
 
-void CMdSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo,
-                        int nRequestID, bool bIsLast) {
+void CMdSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
     json root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
     root["ErrorID"] = pRspInfo->ErrorID;
-    publisher->publish(format("{}OnRspError:{}", CHANNEL_MARKET_DATA, ntos(nRequestID)), root.dump());
+    publisher->publish(format("{}OnRspError:{}", CHANNEL_MARKET_DATA, nRequestID), root.dump());
 }
 
 void CMdSpi::OnFrontDisconnected(int nReason) {
-    publisher->publish(format("{}OnFrontDisconnected", CHANNEL_MARKET_DATA), ntos(nReason));
+    publisher->publish(format("{}OnFrontDisconnected", CHANNEL_MARKET_DATA), format("{}", nReason));
     market_login = false;
     el::Helpers::setThreadName("market");
 }
 
 void CMdSpi::OnHeartBeatWarning(int nTimeLapse) {
-    publisher->publish(format("{}OnHeartBeatWarning", CHANNEL_MARKET_DATA), ntos(nTimeLapse));
+    publisher->publish(format("{}OnHeartBeatWarning", CHANNEL_MARKET_DATA), format("{}", nTimeLapse));
 }
 
 void CMdSpi::OnFrontConnected() {
@@ -57,8 +56,7 @@ void CMdSpi::OnFrontConnected() {
     logger->info("行情前置已连接！发送行情登录请求..");
 }
 
-void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
-                            CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
     json root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
@@ -82,12 +80,11 @@ void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
         root["INETime"] = pRspUserLogin->INETime;
         market_login = true;
     }
-    publisher->publish(format("{}OnRspUserLogin:{}", CHANNEL_MARKET_DATA, ntos(nRequestID)), root.dump());
+    publisher->publish(format("{}OnRspUserLogin:{}", CHANNEL_MARKET_DATA, nRequestID), root.dump());
     logger->info("行情登录成功！交易日：%v", pRspUserLogin->TradingDay);
 }
 
-void CMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument,
-                                CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+void CMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
     json root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
@@ -97,11 +94,10 @@ void CMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInst
     } else {
         root["InstrumentID"] = pSpecificInstrument->InstrumentID;
     }
-    publisher->publish(format("{}OnRspSubMarketData:{}", CHANNEL_MARKET_DATA, ntos(nRequestID)), root.dump());
+    publisher->publish(format("{}OnRspSubMarketData:{}", CHANNEL_MARKET_DATA, nRequestID), root.dump());
 }
 
-void CMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument,
-                                  CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+void CMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
     json root;
     root["nRequestID"] = nRequestID;
     root["bIsLast"] = bIsLast;
@@ -111,7 +107,7 @@ void CMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificIn
     } else {
         root["InstrumentID"] = pSpecificInstrument->InstrumentID;
     }
-    publisher->publish(format("{}OnRspUnSubMarketData:{}", CHANNEL_MARKET_DATA, ntos(nRequestID)), root.dump());
+    publisher->publish(format("{}OnRspUnSubMarketData:{}", CHANNEL_MARKET_DATA, nRequestID), root.dump());
 }
 
 void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pData) {
@@ -147,7 +143,6 @@ void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pData) {
     sprintf(time_str, "%s %s:%d", pData->ActionDay, pData->UpdateTime, pData->UpdateMillisec * 1000);
     root["UpdateTime"] = string(time_str);
     auto data_str = root.dump();
-    publisher->publish(
-            format("{}OnRtnDepthMarketData:{}", CHANNEL_MARKET_DATA, root["InstrumentID"].get<string>()), data_str);
+    publisher->publish(format("{}OnRtnDepthMarketData:{}", CHANNEL_MARKET_DATA, root["InstrumentID"].get<string>()), data_str);
     publisher->set(format("TICK:{}", root["InstrumentID"].get<string>()), data_str);
 }

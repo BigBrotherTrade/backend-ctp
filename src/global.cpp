@@ -97,19 +97,13 @@ int gb2312toutf8(char *sourcebuf, [[maybe_unused]] size_t sourcelen, char *destb
 }
 #endif
 
-string ntos(int n) {
-    stringstream newstr;
-    newstr << n;
-    return newstr.str();
-}
-
 int IsMarketLogin(const json &root) {
-    publisher->publish(format("{}IsMarketLogin", CHANNEL_MARKET_DATA), ntos(market_login));
+    publisher->publish(format("{}IsMarketLogin", CHANNEL_MARKET_DATA), format("{}", market_login));
     return 1;
 }
 
 int IsTradeLogin(const json &root) {
-    publisher->publish(format("{}IsTradeLogin", CHANNEL_MARKET_DATA), ntos(trade_login));
+    publisher->publish(format("{}IsTradeLogin", CHANNEL_MARKET_DATA), format("{}", trade_login));
     return 1;
 }
 
@@ -488,9 +482,7 @@ void handle_command(std::stop_token stop_token) {
             err = "发送失败";
         logger->info("结果: %v", err);
         if (iResult != ERROR_RESULT && iResult < 0) {
-            publisher->publish(
-                    format("{}OnRspError:{}", CHANNEL_MARKET_DATA, ntos(cmd_pair.second["RequestID"].get<int>())),
-                    cmd_pair.second.dump());
+            publisher->publish(format("{}OnRspError:{}", CHANNEL_MARKET_DATA, cmd_pair.second["RequestID"].get<int>()), cmd_pair.second.dump());
         }
     }
     logger->info("监听线程已退出.");

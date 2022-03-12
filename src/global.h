@@ -26,16 +26,14 @@
 #include "json.hpp"
 #include "easylogging++.h"
 
-constexpr auto CHANNEL_REQ_PATTERN = "MSG:CTP:REQ:*";         // 监听req命令
-constexpr auto CHANNEL_TRADE_DATA = "MSG:CTP:RSP:TRADE:";     // trade回调通知
-constexpr auto CHANNEL_MARKET_DATA = "MSG:CTP:RSP:MARKET:";   // md回调数据
+inline constexpr auto CHANNEL_REQ_PATTERN = "MSG:CTP:REQ:*";         // 监听req命令
+inline constexpr auto CHANNEL_TRADE_DATA = "MSG:CTP:RSP:TRADE:";     // trade回调通知
+inline constexpr auto CHANNEL_MARKET_DATA = "MSG:CTP:RSP:MARKET:";   // md回调数据
 
 extern el::Logger* logger;
 extern sw::redis::Redis* publisher;
-
 extern CThostFtdcTraderApi* pTraderApi;
 extern CThostFtdcMdApi* pMdApi;
-
 extern std::string MAC_ADDRESS;
 extern std::string IP_ADDRESS;
 extern std::string BROKER_ID;		    // 经纪公司代码
@@ -46,7 +44,6 @@ extern std::string AUTHCODE;			// 认证码
 extern std::string USERINFO;	        // 产品信息
 extern TThostFtdcFrontIDType FRONT_ID;             // 前置编号
 extern TThostFtdcSessionIDType SESSION_ID;         // 会话编号
-
 extern int iMarketRequestID;
 extern int iTradeRequestID;
 extern bool query_finished;
@@ -54,10 +51,6 @@ extern bool trade_login;
 extern bool market_login;
 
 extern void handle_req_request([[maybe_unused]] std::string pattern, std::string channel, std::string msg);
-
-int gb2312toutf8(char *sourcebuf, [[maybe_unused]] size_t sourcelen, char *destbuf, size_t destlen);
-
-std::string ntos(int n);
-
-void handle_command(std::stop_token);
-std::condition_variable& getCond();
+extern int gb2312toutf8(char *sourcebuf, [[maybe_unused]] size_t sourcelen, char *destbuf, size_t destlen);
+extern void handle_command(std::stop_token);
+extern std::condition_variable& getCond();
