@@ -391,7 +391,7 @@ void handle_req_request([[maybe_unused]] string pattern, string channel, string 
     json json_msg;
     try {
         json_msg = json::parse(msg);
-        cout << "req=" << json_msg << endl;
+        cout << request_type << "->" << json_msg << endl;
     } catch (json::exception &e) {
         logger->error("handle_req_request failed: %v", e.what());
         return;
